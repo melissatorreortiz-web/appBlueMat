@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================
+    // FUNCIONES DE APOYO
+    // =========================
+
+    function usuarioActivo() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
+    }
+
+    function rolUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol;
+    }
+
+    function esAdmin() {
+      return usuarioActivo() && rolUsuario() == "admin";
+    }
+
+    function esAdminORecepcion() {
+      return usuarioActivo() && rolUsuario() in ["admin", "recepcion"];
+    }
+
+    // =========================
+    // USUARIOS
+    // =========================
+    match /usuarios/{usuarioId} {
+      // Cada quien puede leer su propio perfil, y un admin puede leer todos
+      // (necesario para el panel de Usuarios).
+      allow read: if request.auth != null
+                   && (request.auth.uid == usuarioId || esAdmin());
+      // Solo un administrador activo puede crear, modificar o eliminar usuarios
+      allow write: if esAdmin();
+    }
+
+    // =========================
+    // ALUMNOS
+    // =========================
+    match /alumnos/{alumnoId} {
+      // Cualquier usuario activo puede ver alumnos (instructor incluido;
+      // el filtrado de datos personales se hace en la app, no aquí)
+      allow read: if usuarioActivo();
+      // Solo admin y recepción pueden crear/editar alumnos
+      allow write: if esAdminORecepcion();
+    }
+
+    // =========================
+    // TARIFAS
+    // =========================
+    match /tarifas/{tarifaId} {
+      allow read: if usuarioActivo();
+      // Solo admin puede tocar tarifas
+      allow write: if esAdmin();
+    }
+
+    // =========================
+    // GRUPOS
+    // =========================
+    match /grupos/{grupoId} {
+      allow read: if usuarioActivo();
+      // Solo admin puede tocar grupos
+      allow write: if esAdmin();
+    }
+
+    // =========================
+    // PAGOS
+    // =========================
+    match /pagos/{pagoId} {
+      allow read: if usuarioActivo();
+      // Admin y recepción pueden registrar/editar pagos (mensualidades y anualidades)
+      allow create, update, delete: if esAdminORecepcion();
+    }
+
+    // =========================
+    // TODO LO DEMÁS
+    // =========================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
