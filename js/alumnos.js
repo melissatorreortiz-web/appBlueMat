@@ -1,8 +1,10 @@
+// Blue Mat Academy - módulo separado
+
 /* ======================================================
-   USUARIOS
+   ALUMNOS
 ====================================================== */
 
-async function cargarUsuarios() {
+async function cargarAlumnos() {
 
     try {
 
@@ -10,16 +12,16 @@ async function cargarUsuarios() {
             await getDocs(
                 collection(
                     db,
-                    "usuarios"
+                    "alumnos"
                 )
             );
 
-        usuarios = [];
+        alumnos = [];
 
         snapshot.forEach(
             documento => {
 
-                usuarios.push({
+                alumnos.push({
                     id: documento.id,
                     ...documento.data()
                 });
@@ -27,75 +29,65 @@ async function cargarUsuarios() {
             }
         );
 
-        usuarios.sort(
+        alumnos.sort(
             (a, b) =>
-                String(
-                    a.nombre || ""
-                ).localeCompare(
-                    String(
-                        b.nombre || ""
-                    ),
-                    "es"
-                )
+                nombreCompleto(a)
+                    .localeCompare(
+                        nombreCompleto(b),
+                        "es"
+                    )
         );
 
-        renderizarUsuarios();
+        renderizarAlumnos();
 
     } catch (error) {
 
         console.error(
-            "Error cargando usuarios:",
+            "Error cargando alumnos:",
             error
         );
 
-        listaUsuarios.innerHTML = `
-            <tr>
-                <td colspan="5">
-                    No fue posible cargar los usuarios.
-                </td>
-            </tr>
-        `;
-
     }
 
 }
 
 
-function etiquetaRol(
-    rol
-) {
+function renderizarAlumnos() {
 
-    if (rol === "admin") {
-        return "Administrador";
-    }
+    const texto =
+        buscador.value
+            .trim()
+            .toLowerCase();
 
-    if (rol === "recepcion") {
-        return "Recepción";
-    }
-
-    if (rol === "instructor") {
-        return "Instructor";
-    }
-
-    return textoSeguro(
-        rol
-    );
-
-}
+    const estado =
+        filtroEstado.value;
 
 
-function renderizarUsuarios() {
+    const hayFiltroActivo =
+        texto !== "" ||
+        estado !== "todos";
 
-    listaUsuarios.innerHTML = "";
+
+    listaAlumnos.innerHTML =
+        "";
+
+    actualizarBotonEliminarSeleccionados();
+
 
     if (
-        usuarios.length === 0
+        !hayFiltroActivo &&
+        !mostrarTodosAlumnos
     ) {
 
-        listaUsuarios.innerHTML = `
+        cabeceraListaAlumnos.innerHTML =
+            "<th>Alumnos</th>";
+
+        listaAlumnos.innerHTML = `
             <tr>
-                <td colspan="5">
-                    No hay usuarios registrados.
+                <td>
+                    Escribe algo en el buscador, usa el filtro de
+                    estado, o pulsa "👁️ Mostrar todos los alumnos"
+                    para ver la lista.
                 </td>
             </tr>
         `;
@@ -104,30 +96,247 @@ function renderizarUsuarios() {
 
     }
 
-    usuarios.forEach(
-        usuario => {
+
+    const filtrados =
+        alumnos.filter(
+            alumno => {
+
+                const nombre =
+                    nombreCompleto(
+                        alumno
+                    ).toLowerCase();
+
+                const correo =
+                    String(
+                        alumno.correo || ""
+                    ).toLowerCase();
+
+                const telefono =
+                    String(
+                        alumno.telefono || ""
+                    ).toLowerCase();
+
+                const coincideBusqueda =
+                    !texto ||
+                    nombre.includes(
+                        texto
+                    ) ||
+                    correo.includes(
+                        texto
+                    ) ||
+                    telefono.includes(
+                        texto
+                    );
+
+                const coincideEstado =
+                    estado === "todos" ||
+                    (
+                        estado === "activos" &&
+                        alumno.activo === true
+                    ) ||
+                    (
+                        estado === "inactivos" &&
+                        alumno.activo !== true
+                    );
+
+                return (
+                    coincideBusqueda &&
+                    coincideEstado
+                );
+
+            }
+        );
+
+
+    const mostrarCheckbox =
+        modoListaAlumnos === "completo" &&
+        puedeEliminarAlumnos;
+
+
+    if (
+        modoListaAlumnos === "basico"
+    ) {
+
+        cabeceraListaAlumnos.innerHTML = `
+            <th>Nombre</th>
+            <th>Grupo</th>
+            <th>Grado / cinta</th>
+            <th>Cumpleaños</th>
+        `;
+
+    } else {
+
+        cabeceraListaAlumnos.innerHTML = `
+            ${
+                mostrarCheckbox
+                    ? `
+                        <th>
+                            <input
+                                type="checkbox"
+                                id="checkTodosAlumnos"
+                            >
+                        </th>
+                      `
+                    : ""
+            }
+            <th>Nombre</th>
+            <th>Grupo</th>
+            <th>Grado</th>
+            <th>Estado</th>
+            <th>Acción</th>
+        `;
+
+        if (
+            mostrarCheckbox
+        ) {
+
+            document
+                .getElementById(
+                    "checkTodosAlumnos"
+                )
+                .addEventListener(
+                    "change",
+                    function() {
+
+                        listaAlumnos
+                            .querySelectorAll(
+                                ".check-eliminar-alumno"
+                            )
+                            .forEach(
+                                casilla => {
+
+                                    casilla.checked =
+                                        this.checked;
+
+                                }
+                            );
+
+                        actualizarBotonEliminarSeleccionados();
+
+                    }
+                );
+
+        }
+
+    }
+
+
+    if (
+        filtrados.length === 0
+    ) {
+
+        listaAlumnos.innerHTML = `
+            <tr>
+                <td colspan="${
+                    modoListaAlumnos === "basico"
+                        ? 4
+                        : (
+                            mostrarCheckbox
+                                ? 6
+                                : 5
+                        )
+                }">
+                    No se encontraron alumnos.
+                </td>
+            </tr>
+        `;
+
+        return;
+
+    }
+
+
+    if (
+        modoListaAlumnos === "basico"
+    ) {
+
+        filtrados.forEach(
+            alumno => {
+
+                const fila =
+                    document.createElement(
+                        "tr"
+                    );
+
+                fila.innerHTML = `
+
+                    <td>
+                        <strong>
+                            ${escaparHtml(
+                                nombreCompleto(
+                                    alumno
+                                )
+                            )}
+                        </strong>
+                    </td>
+
+                    <td>
+                        ${escaparHtml(
+                            textoSeguro(
+                                alumno.grupo
+                            )
+                        )}
+                    </td>
+
+                    <td>
+                        ${escaparHtml(
+                            textoSeguro(
+                                alumno.grado
+                            )
+                        )}
+                    </td>
+
+                    <td>
+                        ${escaparHtml(
+                            formatearFechaSimple(
+                                alumno.fechaNacimiento
+                            )
+                        )}
+                    </td>
+
+                `;
+
+                listaAlumnos.appendChild(
+                    fila
+                );
+
+            }
+        );
+
+        return;
+
+    }
+
+
+    filtrados.forEach(
+        alumno => {
 
             const fila =
                 document.createElement(
                     "tr"
                 );
 
-            const nombreApellidos =
-                [
-                    usuario.nombre,
-                    usuario.Apellidos ||
-                    usuario.apellidos
-                ]
-                    .filter(Boolean)
-                    .join(" ");
-
             fila.innerHTML = `
+
+                ${
+                    mostrarCheckbox
+                        ? `
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    class="check-eliminar-alumno"
+                                    data-id="${alumno.id}"
+                                >
+                            </td>
+                          `
+                        : ""
+                }
 
                 <td>
                     <strong>
                         ${escaparHtml(
-                            textoSeguro(
-                                nombreApellidos
+                            nombreCompleto(
+                                alumno
                             )
                         )}
                     </strong>
@@ -136,77 +345,87 @@ function renderizarUsuarios() {
                 <td>
                     ${escaparHtml(
                         textoSeguro(
-                            usuario.correo
+                            alumno.grupo
                         )
                     )}
                 </td>
 
                 <td>
                     ${escaparHtml(
-                        etiquetaRol(
-                            usuario.rol
+                        textoSeguro(
+                            alumno.grado
                         )
                     )}
                 </td>
 
                 <td>
+
                     ${
-                        usuario.activo === true
+                        alumno.activo === true
 
                         ? `
-                            <span class="estado-activo">
+                            <span
+                                class="estado-activo"
+                            >
                                 🟢 Activo
                             </span>
                           `
 
                         : `
-                            <span class="estado-inactivo">
+                            <span
+                                class="estado-inactivo"
+                            >
                                 🔴 Inactivo
                             </span>
                           `
                     }
+
                 </td>
 
                 <td>
 
                     <button
-                        type="button"
-                        class="
-                            btn-principal
-                            boton-fila
-                            btn-editar-usuario
-                        "
-                        data-id="${usuario.id}"
+                        class="btn-principal boton-fila"
+                        data-id="${alumno.id}"
                     >
-                        ✏️ Editar
+                        Ver expediente
                     </button>
-
-                    ${
-                        usuario.correo
-
-                        ? `
-                            <button
-                                type="button"
-                                class="
-                                    btn-secundario
-                                    boton-fila
-                                    btn-resetear-password
-                                "
-                                data-id="${usuario.id}"
-                                style="margin-left:6px;"
-                            >
-                                🔑 Restablecer contraseña
-                            </button>
-                          `
-
-                        : ""
-                    }
 
                 </td>
 
             `;
 
-            listaUsuarios.appendChild(
+
+            fila
+                .querySelector(
+                    "button"
+                )
+                .addEventListener(
+                    "click",
+                    () => {
+
+                        const encontrado =
+                            alumnos.find(
+                                a =>
+                                    a.id ===
+                                    alumno.id
+                            );
+
+                        if (
+                            encontrado
+                        ) {
+
+                            mostrarExpediente(
+                                encontrado
+                            );
+
+                        }
+
+                    }
+                );
+
+
+            listaAlumnos.appendChild(
                 fila
             );
 
@@ -214,368 +433,579 @@ function renderizarUsuarios() {
     );
 
 
-    listaUsuarios
-        .querySelectorAll(
-            ".btn-editar-usuario"
-        )
-        .forEach(
-            boton => {
+    if (
+        mostrarCheckbox
+    ) {
 
-                boton.addEventListener(
-                    "click",
-                    function() {
+        listaAlumnos
+            .querySelectorAll(
+                ".check-eliminar-alumno"
+            )
+            .forEach(
+                casilla => {
 
-                        const usuario =
-                            usuarios.find(
-                                u =>
-                                    u.id ===
-                                    this.dataset.id
-                            );
+                    casilla.addEventListener(
+                        "change",
+                        actualizarBotonEliminarSeleccionados
+                    );
 
-                        if (usuario) {
+                }
+            );
 
-                            iniciarEdicionUsuario(
-                                usuario
-                            );
+    }
 
-                        }
+}
 
-                    }
-                );
 
-            }
+function actualizarBotonEliminarSeleccionados() {
+
+    if (
+        !puedeEliminarAlumnos
+    ) {
+
+        btnEliminarSeleccionados.style.display =
+            "none";
+
+        return;
+
+    }
+
+    const seleccionados =
+        listaAlumnos.querySelectorAll(
+            ".check-eliminar-alumno:checked"
+        ).length;
+
+    if (
+        seleccionados === 0
+    ) {
+
+        btnEliminarSeleccionados.style.display =
+            "none";
+
+    } else {
+
+        btnEliminarSeleccionados.style.display =
+            "inline-block";
+
+        btnEliminarSeleccionados.textContent =
+            `🗑️ Eliminar ${seleccionados} alumno(s) seleccionado(s)`;
+
+    }
+
+}
+
+
+btnMostrarTodosAlumnos.addEventListener(
+    "click",
+    function() {
+
+        mostrarTodosAlumnos =
+            !mostrarTodosAlumnos;
+
+        btnMostrarTodosAlumnos.textContent =
+            mostrarTodosAlumnos
+                ? "🙈 Ocultar lista completa"
+                : "👁️ Mostrar todos los alumnos";
+
+        renderizarAlumnos();
+
+    }
+);
+
+
+/*
+ * Borra un alumno y, antes, todos sus
+ * pagos (mensualidades y anualidades)
+ * para no dejar registros huérfanos.
+ */
+
+async function eliminarAlumnoConPagos(
+    alumnoId,
+    nfcUid
+) {
+
+    const consulta =
+        query(
+            collection(
+                db,
+                "pagos"
+            ),
+            where(
+                "alumnoId",
+                "==",
+                alumnoId
+            )
         );
 
-
-    listaUsuarios
-        .querySelectorAll(
-            ".btn-resetear-password"
-        )
-        .forEach(
-            boton => {
-
-                boton.addEventListener(
-                    "click",
-                    async function() {
-
-                        const usuario =
-                            usuarios.find(
-                                u =>
-                                    u.id ===
-                                    this.dataset.id
-                            );
-
-                        if (
-                            !usuario ||
-                            !usuario.correo
-                        ) {
-                            return;
-                        }
-
-                        this.disabled =
-                            true;
-
-                        try {
-
-                            await sendPasswordResetEmail(
-                                auth,
-                                usuario.correo
-                            );
-
-                            mostrarMensaje(
-                                mensajeUsuario,
-                                `Se envió un correo de restablecimiento a ${usuario.correo}.`,
-                                "ok"
-                            );
-
-                        } catch (error) {
-
-                            console.error(
-                                error
-                            );
-
-                            mostrarMensaje(
-                                mensajeUsuario,
-                                "No fue posible enviar el correo de restablecimiento.",
-                                "error"
-                            );
-
-                        }
-
-                        this.disabled =
-                            false;
-
-                    }
-                );
-
-            }
+    const snapshotPagos =
+        await getDocs(
+            consulta
         );
+
+    for (
+        const documentoPago
+        of snapshotPagos.docs
+    ) {
+
+        await deleteDoc(
+            doc(
+                db,
+                "pagos",
+                documentoPago.id
+            )
+        );
+
+    }
+
+
+    if (
+        nfcUid
+    ) {
+
+        try {
+
+            await deleteDoc(
+                doc(
+                    db,
+                    "directorio_nfc",
+                    nfcUid
+                )
+            );
+
+        } catch (error) {
+
+            console.error(
+                "No fue posible limpiar el directorio_nfc:",
+                error
+            );
+
+        }
+
+    }
+
+
+    await deleteDoc(
+        doc(
+            db,
+            "alumnos",
+            alumnoId
+        )
+    );
 
 }
 
 
 /*
- * Crea la cuenta de acceso (correo/contraseña)
- * sin cerrar la sesión del administrador actual:
- * usa una segunda instancia de Firebase, solo
- * para ese registro, y la destruye enseguida.
+ * Mantiene sincronizado el directorio público
+ * mínimo que usa el kiosco de NFC (checkin.html):
+ * solo alumnoId, nombre, foto y activo — nunca
+ * teléfono, correo, cuota ni ningún otro dato
+ * sensible.
  */
 
-async function crearCuentaSinCerrarSesion(
-    correo,
-    password
+async function sincronizarDirectorioNfc(
+    alumnoId,
+    datosAlumno,
+    nfcUidAnterior
 ) {
 
-    const configuracion =
-        auth.app.options;
+    if (
+        nfcUidAnterior &&
+        nfcUidAnterior !== datosAlumno.nfcUid
+    ) {
 
-    const nombreAppTemporal =
-        `usuario-temporal-${Date.now()}`;
+        try {
 
-    const appTemporal =
-        initializeApp(
-            configuracion,
-            nombreAppTemporal
-        );
-
-    const authTemporal =
-        getAuth(
-            appTemporal
-        );
-
-    try {
-
-        const credencial =
-            await createUserWithEmailAndPassword(
-                authTemporal,
-                correo,
-                password
+            await deleteDoc(
+                doc(
+                    db,
+                    "directorio_nfc",
+                    nfcUidAnterior
+                )
             );
 
-        const uid =
-            credencial.user.uid;
+        } catch (error) {
 
-        await signOut(
-            authTemporal
-        );
-
-        return uid;
-
-    } finally {
-
-        await deleteApp(
-            appTemporal
-        );
-
-    }
-
-}
-
-
-function cerrarPanelUsuario() {
-
-    panelAltaUsuario.classList.remove(
-        "abierto"
-    );
-
-    btnToggleUsuario.classList.remove(
-        "abierto"
-    );
-
-    formUsuario.reset();
-
-    limpiarMensaje(
-        mensajeUsuario
-    );
-
-    usuarioEditandoId =
-        null;
-
-    btnGuardarUsuario.textContent =
-        "Crear usuario";
-
-    campoUsuarioPassword.style.display =
-        "flex";
-
-    usuarioCorreoInput.disabled =
-        false;
-
-}
-
-
-btnToggleUsuario.addEventListener(
-    "click",
-    function() {
-
-        const abierto =
-            panelAltaUsuario
-                .classList
-                .contains(
-                    "abierto"
-                );
-
-        if (abierto) {
-
-            cerrarPanelUsuario();
-
-        } else {
-
-            panelAltaUsuario
-                .classList
-                .add(
-                    "abierto"
-                );
-
-            btnToggleUsuario
-                .classList
-                .add(
-                    "abierto"
-                );
+            console.error(
+                "No fue posible limpiar el directorio_nfc anterior:",
+                error
+            );
 
         }
 
     }
-);
 
 
-btnCancelarUsuario.addEventListener(
-    "click",
-    cerrarPanelUsuario
-);
+    if (
+        !datosAlumno.nfcUid
+    ) {
+        return;
+    }
 
 
-function iniciarEdicionUsuario(
-    usuario
-) {
+    try {
 
-    usuarioEditandoId =
-        usuario.id;
+        await setDoc(
+            doc(
+                db,
+                "directorio_nfc",
+                datosAlumno.nfcUid
+            ),
+            {
 
-    document
-        .getElementById(
-            "usuarioNombre"
-        )
-        .value =
-        usuario.nombre || "";
+                alumnoId,
 
-    document
-        .getElementById(
-            "usuarioApellidos"
-        )
-        .value =
-        usuario.Apellidos ||
-        usuario.apellidos ||
-        "";
+                nombre:
+                    [
+                        datosAlumno.nombre,
+                        datosAlumno.apellidoPaterno,
+                        datosAlumno.apellidoMaterno
+                    ]
+                        .filter(Boolean)
+                        .join(" "),
 
-    usuarioCorreoInput.value =
-        usuario.correo || "";
+                foto:
+                    datosAlumno.foto || "",
 
-    usuarioCorreoInput.disabled =
-        true;
+                activo:
+                    datosAlumno.activo === true
 
-    document
-        .getElementById(
-            "usuarioRol"
-        )
-        .value =
-        usuario.rol || "instructor";
+            }
+        );
 
-    document
-        .getElementById(
-            "usuarioActivoSelect"
-        )
-        .value =
-        usuario.activo === true
-            ? "true"
-            : "false";
+    } catch (error) {
 
-    /*
-     * Al editar no se puede tocar la
-     * contraseña desde aquí (usa el botón
-     * de restablecer contraseña).
-     */
+        console.error(
+            "No fue posible actualizar el directorio_nfc:",
+            error
+        );
 
-    campoUsuarioPassword.style.display =
-        "none";
-
-    usuarioPasswordInput.value =
-        "";
-
-    btnGuardarUsuario.textContent =
-        "Guardar cambios";
-
-    limpiarMensaje(
-        mensajeUsuario
-    );
-
-    panelAltaUsuario.classList.add(
-        "abierto"
-    );
-
-    btnToggleUsuario.classList.add(
-        "abierto"
-    );
-
-    panelAltaUsuario.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
+    }
 
 }
 
 
-formUsuario.addEventListener(
+btnEliminarSeleccionados.addEventListener(
+    "click",
+    async function() {
+
+        const ids =
+            Array.from(
+                listaAlumnos.querySelectorAll(
+                    ".check-eliminar-alumno:checked"
+                )
+            ).map(
+                casilla =>
+                    casilla.dataset.id
+            );
+
+        if (
+            ids.length === 0
+        ) {
+            return;
+        }
+
+        const confirmado =
+            confirm(
+                `¿Seguro que quieres eliminar ${ids.length} alumno(s)? ` +
+                `Esto también borra sus pagos registrados y no se puede deshacer.`
+            );
+
+        if (
+            !confirmado
+        ) {
+            return;
+        }
+
+        btnEliminarSeleccionados.disabled =
+            true;
+
+        btnEliminarSeleccionados.textContent =
+            "Eliminando...";
+
+        let exitosos = 0;
+
+        let fallidos = 0;
+
+        for (
+            const id
+            of ids
+        ) {
+
+            try {
+
+                const alumnoEncontrado =
+                    alumnos.find(
+                        a => a.id === id
+                    );
+
+                await eliminarAlumnoConPagos(
+                    id,
+                    alumnoEncontrado?.nfcUid
+                );
+
+                exitosos++;
+
+            } catch (error) {
+
+                console.error(
+                    "Error eliminando alumno:",
+                    error
+                );
+
+                fallidos++;
+
+            }
+
+        }
+
+        await cargarAlumnos();
+
+        await cargarCobranzaPeriodo();
+
+        btnEliminarSeleccionados.disabled =
+            false;
+
+        mostrarMensaje(
+            mensaje,
+            `Eliminados: ${exitosos}.${
+                fallidos
+                    ? ` No se pudieron eliminar ${fallidos}.`
+                    : ""
+            }`,
+            fallidos ? "error" : "ok"
+        );
+
+    }
+);
+
+
+buscador.addEventListener(
+    "input",
+    renderizarAlumnos
+);
+
+filtroEstado.addEventListener(
+    "change",
+    renderizarAlumnos
+);
+
+
+
+/* ======================================================
+   AGREGAR ALUMNO
+====================================================== */
+
+formAlumno.addEventListener(
     "submit",
     async function(e) {
 
         e.preventDefault();
 
         limpiarMensaje(
-            mensajeUsuario
+            mensaje
         );
 
-        const nombre =
+
+        const tarifaId =
+            selectTarifaAlta.value;
+
+        const tipoTarifa =
             document
                 .getElementById(
-                    "usuarioNombre"
-                )
-                .value
-                .trim();
-
-        const apellidos =
-            document
-                .getElementById(
-                    "usuarioApellidos"
-                )
-                .value
-                .trim();
-
-        const correo =
-            usuarioCorreoInput.value
-                .trim();
-
-        const rol =
-            document
-                .getElementById(
-                    "usuarioRol"
+                    "tipoTarifa"
                 )
                 .value;
 
-        const activo =
-            document
-                .getElementById(
-                    "usuarioActivoSelect"
+        const tipoDescuentoBeca =
+            tipoTarifa === "beca"
+                ? document
+                    .getElementById(
+                        "tipoDescuentoBeca"
+                    )
+                    .value
+                : "porcentaje";
+
+        const porcentajeBeca =
+            tipoTarifa === "beca" &&
+            tipoDescuentoBeca === "porcentaje"
+                ? Number(
+                    document
+                        .getElementById(
+                            "porcentajeBeca"
+                        )
+                        .value || 0
                 )
-                .value === "true";
+                : 0;
+
+        const montoDescuentoBeca =
+            tipoTarifa === "beca" &&
+            tipoDescuentoBeca === "monto"
+                ? Number(
+                    document
+                        .getElementById(
+                            "montoDescuentoBeca"
+                        )
+                        .value || 0
+                )
+                : 0;
+
+
+        const cuotaBase =
+            obtenerCuotaBaseDeTarifa(
+                tarifaId
+            );
+
+
+        const cuotaMensual =
+            calcularCuota(
+                cuotaBase,
+                tipoTarifa,
+                tipoDescuentoBeca,
+                porcentajeBeca,
+                montoDescuentoBeca
+            );
+
+
+        const datos = {
+
+            nombre:
+                document
+                    .getElementById(
+                        "nombre"
+                    )
+                    .value
+                    .trim(),
+
+            apellidoPaterno:
+                document
+                    .getElementById(
+                        "apellidoPaterno"
+                    )
+                    .value
+                    .trim(),
+
+            apellidoMaterno:
+                document
+                    .getElementById(
+                        "apellidoMaterno"
+                    )
+                    .value
+                    .trim(),
+
+            correo:
+                document
+                    .getElementById(
+                        "correo"
+                    )
+                    .value
+                    .trim(),
+
+            telefono:
+                document
+                    .getElementById(
+                        "telefono"
+                    )
+                    .value
+                    .trim(),
+
+            direccion:
+                document
+                    .getElementById(
+                        "direccion"
+                    )
+                    .value
+                    .trim(),
+
+            estadoCivil:
+                document
+                    .getElementById(
+                        "estadoCivil"
+                    )
+                    .value,
+
+            fechaNacimiento:
+                document
+                    .getElementById(
+                        "fechaNacimiento"
+                    )
+                    .value,
+
+            fechaRegistro:
+                Timestamp.now(),
+
+            fechaIngreso:
+                document
+                    .getElementById(
+                        "fechaIngreso"
+                    )
+                    .value,
+
+            fechaBaja:
+                document
+                    .getElementById(
+                        "fechaBaja"
+                    )
+                    .value,
+
+            activo:
+                document
+                    .getElementById(
+                        "activo"
+                    )
+                    .value === "true",
+
+            grupo:
+                document
+                    .getElementById(
+                        "grupo"
+                    )
+                    .value
+                    .trim(),
+
+            grado:
+                document
+                    .getElementById(
+                        "grado"
+                    )
+                    .value
+                    .trim(),
+
+            nfcUid:
+                document
+                    .getElementById(
+                        "nfcUid"
+                    )
+                    .value
+                    .trim(),
+
+            foto:
+                fotoBase64Nueva || "",
+
+            tarifaId,
+
+            tipoTarifa,
+
+            tipoDescuentoBeca,
+
+            porcentajeBeca,
+
+            montoDescuentoBeca,
+
+            cuotaMensual
+
+        };
+
 
         if (
-            !nombre ||
-            !correo
+            !datos.nombre ||
+            !datos.apellidoPaterno ||
+            !tarifaId
         ) {
 
             mostrarMensaje(
-                mensajeUsuario,
-                "Completa nombre y correo.",
+                mensaje,
+                "Completa los campos obligatorios.",
                 "error"
             );
 
@@ -583,179 +1013,73 @@ formUsuario.addEventListener(
 
         }
 
-
-        /* =================================================
-           MODO EDICIÓN (no toca correo ni contraseña)
-        ================================================= */
-
-        if (
-            usuarioEditandoId
-        ) {
-
-            try {
-
-                await updateDoc(
-                    doc(
-                        db,
-                        "usuarios",
-                        usuarioEditandoId
-                    ),
-                    {
-                        nombre,
-                        Apellidos: apellidos,
-                        rol,
-                        activo
-                    }
-                );
-
-                mostrarMensaje(
-                    mensajeUsuario,
-                    "Usuario actualizado correctamente.",
-                    "ok"
-                );
-
-                await cargarUsuarios();
-
-                setTimeout(
-                    cerrarPanelUsuario,
-                    800
-                );
-
-            } catch (error) {
-
-                console.error(
-                    error
-                );
-
-                mostrarMensaje(
-                    mensajeUsuario,
-                    "No fue posible actualizar el usuario.",
-                    "error"
-                );
-
-            }
-
-            return;
-
-        }
-
-
-        /* =================================================
-           MODO NUEVO USUARIO
-        ================================================= */
-
-        const password =
-            usuarioPasswordInput.value;
-
-        if (
-            !password ||
-            password.length < 6
-        ) {
-
-            mostrarMensaje(
-                mensajeUsuario,
-                "La contraseña debe tener al menos 6 caracteres.",
-                "error"
-            );
-
-            return;
-
-        }
-
-        btnGuardarUsuario.disabled =
-            true;
-
-        btnGuardarUsuario.textContent =
-            "Creando...";
 
         try {
 
-            const uid =
-                await crearCuentaSinCerrarSesion(
-                    correo,
-                    password
+            const nuevoAlumnoRef =
+                await addDoc(
+                    collection(
+                        db,
+                        "alumnos"
+                    ),
+                    datos
                 );
 
-            await setDoc(
-                doc(
-                    db,
-                    "usuarios",
-                    uid
-                ),
-                {
-                    nombre,
-                    Apellidos: apellidos,
-                    correo,
-                    rol,
-                    activo
-                }
+
+            await sincronizarDirectorioNfc(
+                nuevoAlumnoRef.id,
+                datos,
+                null
             );
 
-            formUsuario.reset();
 
             mostrarMensaje(
-                mensajeUsuario,
-                "Usuario creado correctamente.",
+                mensaje,
+                "Alumno registrado correctamente.",
                 "ok"
             );
 
-            await cargarUsuarios();
+
+            formAlumno.reset();
+
+            fotoBase64Nueva =
+                null;
+
+            document
+                .getElementById(
+                    "previewFotoNueva"
+                )
+                .style.display =
+                "none";
+
+            document
+                .getElementById(
+                    "cuotaMensualVista"
+                )
+                .textContent =
+                "$0.00";
+
+
+            await cargarAlumnos();
+
+            await cargarCobranzaPeriodo();
+
 
             setTimeout(
-                cerrarPanelUsuario,
-                900
+                cerrarPanelAlta,
+                800
             );
+
 
         } catch (error) {
 
-            console.error(
-                "Error creando usuario:",
-                error
-            );
-
-            let texto =
-                "No fue posible crear el usuario.";
-
-            if (
-                error.code === "auth/email-already-in-use"
-            ) {
-
-                texto =
-                    "Ese correo ya tiene una cuenta.";
-
-            } else if (
-                error.code === "auth/invalid-email"
-            ) {
-
-                texto =
-                    "El correo no es válido.";
-
-            } else if (
-                error.code === "auth/weak-password"
-            ) {
-
-                texto =
-                    "La contraseña es demasiado débil.";
-
-            }
+            console.error(error);
 
             mostrarMensaje(
-                mensajeUsuario,
-                texto,
+                mensaje,
+                "No fue posible guardar al alumno.",
                 "error"
             );
-
-        }
-
-        btnGuardarUsuario.disabled =
-            false;
-
-        if (
-            !usuarioEditandoId
-        ) {
-
-            btnGuardarUsuario.textContent =
-                "Crear usuario";
 
         }
 
@@ -765,9 +1089,956 @@ formUsuario.addEventListener(
 
 
 /* ======================================================
-   CÁLCULO CUOTA
+   EXPEDIENTE
 ====================================================== */
 
+function mostrarExpediente(
+    alumno
+) {
+
+    alumnoActual =
+        alumno;
+
+
+    btnEliminarAlumno.style.display =
+        puedeEliminarAlumnos
+            ? "inline-block"
+            : "none";
+
+
+    document
+        .getElementById(
+            "tituloExpediente"
+        )
+        .textContent =
+        nombreCompleto(
+            alumno
+        );
+
+
+    document
+        .getElementById(
+            "expActivo"
+        )
+        .innerHTML =
+
+        alumno.activo === true
+
+        ? `
+            <span class="estado-activo">
+                🟢 Activo
+            </span>
+          `
+
+        : `
+            <span class="estado-inactivo">
+                🔴 Inactivo
+            </span>
+          `;
+
+
+    document
+        .getElementById(
+            "expGrupo"
+        )
+        .textContent =
+        textoSeguro(
+            alumno.grupo
+        );
+
+
+    document
+        .getElementById(
+            "expGrado"
+        )
+        .textContent =
+        textoSeguro(
+            alumno.grado
+        );
+
+
+    document
+        .getElementById(
+            "expRegistro"
+        )
+        .textContent =
+        formatearFecha(
+            alumno.fechaRegistro
+        );
+
+
+    document
+        .getElementById(
+            "expFechaIngreso"
+        )
+        .textContent =
+        formatearFechaSimple(
+            alumno.fechaIngreso
+        );
+
+
+    document
+        .getElementById(
+            "expFechaBaja"
+        )
+        .textContent =
+        formatearFechaSimple(
+            alumno.fechaBaja
+        );
+
+
+    document
+        .getElementById(
+            "expNfc"
+        )
+        .textContent =
+        textoSeguro(
+            alumno.nfcUid
+        );
+
+
+    const tarifa =
+        tarifasMap[
+            alumno.tarifaId
+        ];
+
+
+    document
+        .getElementById(
+            "expTarifa"
+        )
+        .textContent =
+        tarifa
+            ? tarifa.nombre
+            : "—";
+
+
+    document
+        .getElementById(
+            "expTipoTarifa"
+        )
+        .textContent =
+        alumno.tipoTarifa === "beca"
+            ? "Beca"
+            : "Normal";
+
+
+    document
+        .getElementById(
+            "expBeca"
+        )
+        .textContent =
+
+        alumno.tipoTarifa === "beca"
+
+        ? (
+            alumno.tipoDescuentoBeca === "monto"
+
+            ? formatearMoneda(
+                alumno.montoDescuentoBeca || 0
+            )
+
+            : `${Number(
+                alumno.porcentajeBeca || 0
+            )}%`
+        )
+
+        : "—";
+
+
+    document
+        .getElementById(
+            "expCuotaBase"
+        )
+        .textContent =
+        formatearMoneda(
+            tarifa
+                ? tarifa.cuotaBase
+                : 0
+        );
+
+
+    document
+        .getElementById(
+            "expCuotaMensual"
+        )
+        .textContent =
+        formatearMoneda(
+            alumno.cuotaMensual
+        );
+
+
+    /* DATOS PERSONALES */
+
+    document
+        .getElementById(
+            "expNombre"
+        )
+        .textContent =
+        nombreCompleto(
+            alumno
+        );
+
+
+    document
+        .getElementById(
+            "expNacimiento"
+        )
+        .textContent =
+        formatearFechaSimple(
+            alumno.fechaNacimiento
+        );
+
+
+    document
+        .getElementById(
+            "expCorreo"
+        )
+        .textContent =
+        textoSeguro(
+            alumno.correo
+        );
+
+
+    document
+        .getElementById(
+            "expTelefono"
+        )
+        .textContent =
+        textoSeguro(
+            alumno.telefono
+        );
+
+
+    document
+        .getElementById(
+            "expEstadoCivil"
+        )
+        .textContent =
+        textoSeguro(
+            alumno.estadoCivil
+        );
+
+
+    document
+        .getElementById(
+            "expDireccion"
+        )
+        .textContent =
+        textoSeguro(
+            alumno.direccion
+        );
+
+
+    /* FOTO */
+
+    const contenedorFoto =
+        document.getElementById(
+            "contenedorFotoExpediente"
+        );
+
+
+    if (alumno.foto) {
+
+        contenedorFoto.innerHTML = `
+            <img
+                src="${alumno.foto}"
+                class="foto-expediente"
+                alt="Foto del alumno"
+            >
+        `;
+
+    } else {
+
+        contenedorFoto.innerHTML = `
+            <div
+                class="
+                    foto-expediente
+                    foto-placeholder
+                "
+            >
+                👤
+            </div>
+        `;
+
+    }
+
+
+    cargarDatosEdicion(
+        alumno
+    );
+
+
+    document
+        .getElementById(
+            "resumenCuotaMensual"
+        )
+        .textContent =
+        formatearMoneda(
+            alumno.cuotaMensual
+        );
+
+
+    /*
+     * Cada vez que abrimos un expediente
+     * comenzamos en modo "nuevo pago".
+     */
+
+    cancelarEdicionPago();
+
+
+    prepararFormularioPago(
+        alumno
+    );
+
+
+    cargarPagosAlumno(
+        alumno.id
+    );
+
+
+    expedienteAsistenciaMes.value =
+        obtenerPeriodoActual();
+
+    cerrarPanelAsistenciaManual();
+
+    cerrarPanelHistorialAsistencia();
+
+    cargarAsistenciasAlumno(
+      alumno.id
+    );
+
+
+    cancelarEdicionAnualidad();
+
+    prepararFormularioAnualidad(
+        alumno
+    );
+
+    cargarAnualidadesAlumno(
+        alumno.id
+    );
+
+
+    expediente.style.display =
+        "block";
+
+    expedienteBackdrop.classList.add(
+        "visible"
+    );
+
+}
+
+
+cerrarExpediente.addEventListener(
+    "click",
+    function() {
+
+        expediente.style.display =
+            "none";
+
+        expedienteBackdrop.classList.remove(
+            "visible"
+        );
+
+        alumnoActual =
+            null;
+
+        cancelarEdicionPago();
+
+        cancelarEdicionAnualidad();
+
+    }
+);
+
+
+expedienteBackdrop.addEventListener(
+    "click",
+    function() {
+
+        cerrarExpediente.click();
+
+    }
+);
+
+
+btnEliminarAlumno.addEventListener(
+    "click",
+    async function() {
+
+        if (
+            !alumnoActual
+        ) {
+            return;
+        }
+
+        const confirmado =
+            confirm(
+                `¿Seguro que quieres eliminar a ${nombreCompleto(alumnoActual)}? ` +
+                `Esto también borra sus pagos registrados y no se puede deshacer.`
+            );
+
+        if (
+            !confirmado
+        ) {
+            return;
+        }
+
+        btnEliminarAlumno.disabled =
+            true;
+
+        btnEliminarAlumno.textContent =
+            "Eliminando...";
+
+        try {
+
+            await eliminarAlumnoConPagos(
+                alumnoActual.id,
+                alumnoActual.nfcUid
+            );
+
+            expediente.style.display =
+                "none";
+
+            expedienteBackdrop.classList.remove(
+                "visible"
+            );
+
+            alumnoActual =
+                null;
+
+            await cargarAlumnos();
+
+            await cargarCobranzaPeriodo();
+
+        } catch (error) {
+
+            console.error(
+                "Error eliminando alumno:",
+                error
+            );
+
+            alert(
+                "No fue posible eliminar al alumno."
+            );
+
+        }
+
+        btnEliminarAlumno.disabled =
+            false;
+
+        btnEliminarAlumno.textContent =
+            "🗑️ Eliminar alumno";
+
+    }
+);
+
+
+
+/* ======================================================
+   EDICIÓN ALUMNO
+====================================================== */
+
+function cargarDatosEdicion(
+    alumno
+) {
+
+    document
+        .getElementById(
+            "editNombre"
+        )
+        .value =
+        alumno.nombre || "";
+
+
+    document
+        .getElementById(
+            "editApellidoPaterno"
+        )
+        .value =
+        alumno.apellidoPaterno || "";
+
+
+    document
+        .getElementById(
+            "editApellidoMaterno"
+        )
+        .value =
+        alumno.apellidoMaterno || "";
+
+
+    document
+        .getElementById(
+            "editFechaNacimiento"
+        )
+        .value =
+        alumno.fechaNacimiento || "";
+
+
+    document
+        .getElementById(
+            "editCorreo"
+        )
+        .value =
+        alumno.correo || "";
+
+
+    document
+        .getElementById(
+            "editTelefono"
+        )
+        .value =
+        alumno.telefono || "";
+
+
+    document
+        .getElementById(
+            "editDireccion"
+        )
+        .value =
+        alumno.direccion || "";
+
+
+    document
+        .getElementById(
+            "editEstadoCivil"
+        )
+        .value =
+        alumno.estadoCivil || "";
+
+
+    document
+        .getElementById(
+            "editFechaIngreso"
+        )
+        .value =
+        alumno.fechaIngreso || "";
+
+
+    document
+        .getElementById(
+            "editFechaBaja"
+        )
+        .value =
+        alumno.fechaBaja || "";
+
+
+    document
+        .getElementById(
+            "editActivo"
+        )
+        .value =
+        alumno.activo === true
+            ? "true"
+            : "false";
+
+
+    fijarGrupoEdicion(
+        alumno
+    );
+
+
+    document
+        .getElementById(
+            "editGrado"
+        )
+        .value =
+        alumno.grado || "";
+
+
+    document
+        .getElementById(
+            "editNfcUid"
+        )
+        .value =
+        alumno.nfcUid || "";
+
+
+    selectTarifaEdicion.value =
+        alumno.tarifaId || "";
+
+
+    document
+        .getElementById(
+            "editTipoTarifa"
+        )
+        .value =
+        alumno.tipoTarifa ||
+        "normal";
+
+
+    document
+        .getElementById(
+            "editTipoDescuentoBeca"
+        )
+        .value =
+        alumno.tipoDescuentoBeca ||
+        "porcentaje";
+
+
+    document
+        .getElementById(
+            "editPorcentajeBeca"
+        )
+        .value =
+        Number(
+            alumno.porcentajeBeca || 0
+        );
+
+
+    document
+        .getElementById(
+            "editMontoDescuentoBeca"
+        )
+        .value =
+        Number(
+            alumno.montoDescuentoBeca || 0
+        );
+
+
+    fotoBase64Edicion =
+        null;
+
+
+    document
+        .getElementById(
+            "previewFotoEdicion"
+        )
+        .style.display =
+        "none";
+
+
+    actualizarEstadoBecaEdicion();
+
+}
+
+
+btnEditar.addEventListener(
+    "click",
+    function() {
+
+        document
+            .getElementById(
+                "panelEdicion"
+            )
+            .style.display =
+            "block";
+
+
+        document
+            .getElementById(
+                "panelEdicion"
+            )
+            .scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+    }
+);
+
+
+cancelarEdicion.addEventListener(
+    "click",
+    function() {
+
+        document
+            .getElementById(
+                "panelEdicion"
+            )
+            .style.display =
+            "none";
+
+    }
+);
+
+
+formEdicion.addEventListener(
+    "submit",
+    async function(e) {
+
+        e.preventDefault();
+
+        if (!alumnoActual) {
+            return;
+        }
+
+        limpiarMensaje(
+            mensajeEdicion
+        );
+
+
+        const tarifaId =
+            selectTarifaEdicion.value;
+
+        const tipoTarifa =
+            document
+                .getElementById(
+                    "editTipoTarifa"
+                )
+                .value;
+
+        const tipoDescuentoBeca =
+            tipoTarifa === "beca"
+                ? document
+                    .getElementById(
+                        "editTipoDescuentoBeca"
+                    )
+                    .value
+                : "porcentaje";
+
+        const porcentajeBeca =
+            tipoTarifa === "beca" &&
+            tipoDescuentoBeca === "porcentaje"
+                ? Number(
+                    document
+                        .getElementById(
+                            "editPorcentajeBeca"
+                        )
+                        .value || 0
+                )
+                : 0;
+
+        const montoDescuentoBeca =
+            tipoTarifa === "beca" &&
+            tipoDescuentoBeca === "monto"
+                ? Number(
+                    document
+                        .getElementById(
+                            "editMontoDescuentoBeca"
+                        )
+                        .value || 0
+                )
+                : 0;
+
+
+        const cuotaBase =
+            obtenerCuotaBaseDeTarifa(
+                tarifaId
+            );
+
+
+        const cuotaMensual =
+            calcularCuota(
+                cuotaBase,
+                tipoTarifa,
+                tipoDescuentoBeca,
+                porcentajeBeca,
+                montoDescuentoBeca
+            );
+
+
+        const cambios = {
+
+            nombre:
+                document
+                    .getElementById(
+                        "editNombre"
+                    )
+                    .value
+                    .trim(),
+
+            apellidoPaterno:
+                document
+                    .getElementById(
+                        "editApellidoPaterno"
+                    )
+                    .value
+                    .trim(),
+
+            apellidoMaterno:
+                document
+                    .getElementById(
+                        "editApellidoMaterno"
+                    )
+                    .value
+                    .trim(),
+
+            fechaNacimiento:
+                document
+                    .getElementById(
+                        "editFechaNacimiento"
+                    )
+                    .value,
+
+            correo:
+                document
+                    .getElementById(
+                        "editCorreo"
+                    )
+                    .value
+                    .trim(),
+
+            telefono:
+                document
+                    .getElementById(
+                        "editTelefono"
+                    )
+                    .value
+                    .trim(),
+
+            direccion:
+                document
+                    .getElementById(
+                        "editDireccion"
+                    )
+                    .value
+                    .trim(),
+
+            estadoCivil:
+                document
+                    .getElementById(
+                        "editEstadoCivil"
+                    )
+                    .value,
+
+            fechaIngreso:
+                document
+                    .getElementById(
+                        "editFechaIngreso"
+                    )
+                    .value,
+
+            fechaBaja:
+                document
+                    .getElementById(
+                        "editFechaBaja"
+                    )
+                    .value,
+
+            activo:
+                document
+                    .getElementById(
+                        "editActivo"
+                    )
+                    .value === "true",
+
+            grupo:
+                document
+                    .getElementById(
+                        "editGrupo"
+                    )
+                    .value
+                    .trim(),
+
+            grado:
+                document
+                    .getElementById(
+                        "editGrado"
+                    )
+                    .value
+                    .trim(),
+
+            nfcUid:
+                document
+                    .getElementById(
+                        "editNfcUid"
+                    )
+                    .value
+                    .trim(),
+
+            tarifaId,
+
+            tipoTarifa,
+
+            tipoDescuentoBeca,
+
+            porcentajeBeca,
+
+            montoDescuentoBeca,
+
+            cuotaMensual
+
+        };
+
+
+        if (
+            fotoBase64Edicion
+        ) {
+
+            cambios.foto =
+                fotoBase64Edicion;
+
+        }
+
+
+        try {
+
+            const nfcUidAnterior =
+                alumnoActual.nfcUid ||
+                "";
+
+            await updateDoc(
+                doc(
+                    db,
+                    "alumnos",
+                    alumnoActual.id
+                ),
+                cambios
+            );
+
+
+            await sincronizarDirectorioNfc(
+                alumnoActual.id,
+                {
+                    ...alumnoActual,
+                    ...cambios
+                },
+                nfcUidAnterior
+            );
+
+
+            mostrarMensaje(
+                mensajeEdicion,
+                "Cambios guardados correctamente.",
+                "ok"
+            );
+
+
+            await cargarAlumnos();
+
+            await cargarCobranzaPeriodo();
+
+
+            const alumnoActualizado =
+                alumnos.find(
+                    alumno =>
+                        alumno.id ===
+                        alumnoActual.id
+                );
+
+
+            if (
+                alumnoActualizado
+            ) {
+
+                alumnoActual =
+                    alumnoActualizado;
+
+                mostrarExpediente(
+                    alumnoActualizado
+                );
+
+            }
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            mostrarMensaje(
+                mensajeEdicion,
+                "No fue posible guardar los cambios.",
+                "error"
+            );
+
+        }
+
+    }
+);
+
+
+/* Recuperado del módulo original */
 function calcularCuota(
     cuotaBase,
     tipoTarifa,
@@ -817,6 +2088,7 @@ function calcularCuota(
 }
 
 
+/* Recuperado del módulo original */
 function obtenerCuotaBaseDeTarifa(
     tarifaId
 ) {
@@ -839,6 +2111,7 @@ function obtenerCuotaBaseDeTarifa(
 }
 
 
+/* Recuperado del módulo original */
 function actualizarCuotaNueva() {
 
     const tarifaId =
@@ -902,6 +2175,7 @@ function actualizarCuotaNueva() {
 }
 
 
+/* Recuperado del módulo original */
 function actualizarCuotaEdicion() {
 
     const tarifaId =
@@ -965,6 +2239,7 @@ function actualizarCuotaEdicion() {
 }
 
 
+/* Recuperado del módulo original */
 function actualizarCamposTipoDescuentoAlta() {
 
     const tipoDescuento =
@@ -997,6 +2272,7 @@ function actualizarCamposTipoDescuentoAlta() {
 }
 
 
+/* Recuperado del módulo original */
 function actualizarEstadoBecaAlta() {
 
     const tipo =
@@ -1057,6 +2333,7 @@ function actualizarEstadoBecaAlta() {
 }
 
 
+/* Recuperado del módulo original */
 function actualizarCamposTipoDescuentoEdicion() {
 
     const tipoDescuento =
@@ -1089,6 +2366,7 @@ function actualizarCamposTipoDescuentoEdicion() {
 }
 
 
+/* Recuperado del módulo original */
 function actualizarEstadoBecaEdicion() {
 
     const tipo =
@@ -1149,95 +2427,7 @@ function actualizarEstadoBecaEdicion() {
 }
 
 
-selectTarifaAlta.addEventListener(
-    "change",
-    actualizarCuotaNueva
-);
-
-document
-    .getElementById(
-        "tipoTarifa"
-    )
-    .addEventListener(
-        "change",
-        actualizarEstadoBecaAlta
-    );
-
-document
-    .getElementById(
-        "tipoDescuentoBeca"
-    )
-    .addEventListener(
-        "change",
-        actualizarCamposTipoDescuentoAlta
-    );
-
-document
-    .getElementById(
-        "porcentajeBeca"
-    )
-    .addEventListener(
-        "input",
-        actualizarCuotaNueva
-    );
-
-document
-    .getElementById(
-        "montoDescuentoBeca"
-    )
-    .addEventListener(
-        "input",
-        actualizarCuotaNueva
-    );
-
-
-selectTarifaEdicion.addEventListener(
-    "change",
-    actualizarCuotaEdicion
-);
-
-document
-    .getElementById(
-        "editTipoTarifa"
-    )
-    .addEventListener(
-        "change",
-        actualizarEstadoBecaEdicion
-    );
-
-document
-    .getElementById(
-        "editTipoDescuentoBeca"
-    )
-    .addEventListener(
-        "change",
-        actualizarCamposTipoDescuentoEdicion
-    );
-
-document
-    .getElementById(
-        "editPorcentajeBeca"
-    )
-    .addEventListener(
-        "input",
-        actualizarCuotaEdicion
-    );
-
-document
-    .getElementById(
-        "editMontoDescuentoBeca"
-    )
-    .addEventListener(
-        "input",
-        actualizarCuotaEdicion
-    );
-
-
-
-/* ======================================================
-   FORMULARIO PLEGABLE
-====================================================== */
-
+/* Recuperado del módulo original */
 function cerrarPanelAlta() {
 
     panelAltaAlumno.classList.remove(
@@ -1268,48 +2458,3 @@ function cerrarPanelAlta() {
         "$0.00";
 
 }
-
-
-btnToggleAlta.addEventListener(
-    "click",
-    function() {
-
-        const abierto =
-            panelAltaAlumno
-                .classList
-                .contains(
-                    "abierto"
-                );
-
-        if (abierto) {
-
-            cerrarPanelAlta();
-
-        } else {
-
-            panelAltaAlumno
-                .classList
-                .add(
-                    "abierto"
-                );
-
-            btnToggleAlta
-                .classList
-                .add(
-                    "abierto"
-                );
-
-        }
-
-    }
-);
-
-
-btnCancelarAlta.addEventListener(
-    "click",
-    cerrarPanelAlta
-);
-
-
-
-

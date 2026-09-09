@@ -1,967 +1,1856 @@
+// Blue Mat Academy - módulo separado
+
 /* ======================================================
-   ASISTENCIAS
-====================================================== */
-/* ======================================================
-   REGISTRAR ASISTENCIA MANUAL
+   IMPORTAR ALUMNOS DESDE SHEETS
 ====================================================== */
 
-async function registrarAsistenciaManual() {
+const CAMPOS_DESTINO_IMPORTACION = [
+    { value: "ignorar", label: "(Ignorar esta columna)" },
+    { value: "nombre", label: "Nombre" },
+    { value: "apellidoPaterno", label: "Apellido paterno" },
+    { value: "apellidoMaterno", label: "Apellido materno" },
+    { value: "fechaNacimiento", label: "Fecha de nacimiento" },
+    { value: "correo", label: "Correo" },
+    { value: "telefono", label: "Teléfono" },
+    { value: "direccion", label: "Dirección" },
+    { value: "estadoCivil", label: "Estado civil" },
+    { value: "fechaIngreso", label: "Fecha de ingreso" },
+    { value: "nfcUid", label: "NFC UID" },
+    { value: "grupo", label: "Grupo (catálogo)" },
+    { value: "tarifa", label: "Tarifa / cuota" },
+    { value: "pagoEstado", label: "Pago: estado" },
+    { value: "pagoMonto", label: "Pago: monto" },
+    { value: "pagoFecha", label: "Pago: fecha de pago" },
+    { value: "pagoMetodo", label: "Pago: método" },
+    { value: "pagoNota", label: "Pago: nota" }
+];
 
-    if (!alumnoActual) {
 
-        alert(
-            "No hay un alumno seleccionado."
+function parseFechaFlexible(texto) {
+
+    const valor =
+        String(texto || "").trim();
+
+    if (!valor) {
+        return "";
+    }
+
+    let coincide =
+        valor.match(
+            /^(\d{4})-(\d{1,2})-(\d{1,2})$/
         );
 
-        return;
+    if (coincide) {
+
+        return `${coincide[1]}-${coincide[2].padStart(2, "0")}-${coincide[3].padStart(2, "0")}`;
 
     }
 
-
-    const inputFecha =
-        document.getElementById(
-            "fechaAsistenciaManual"
+    coincide =
+        valor.match(
+            /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
         );
 
+    if (coincide) {
 
-    const inputHora =
-        document.getElementById(
-            "horaAsistenciaManual"
-        );
-
-
-    const fecha =
-        inputFecha.value;
-
-
-    const hora =
-        inputHora.value;
-
-
-    if (
-        !fecha ||
-        !hora
-    ) {
-
-        alert(
-            "Selecciona la fecha y la hora."
-        );
-
-        return;
+        return `${coincide[3]}-${coincide[2].padStart(2, "0")}-${coincide[1].padStart(2, "0")}`;
 
     }
 
+    return "";
 
-    try {
+}
 
-        const fechaHora =
-            new Date(
-                `${fecha}T${hora}`
+
+function parseMontoFlexible(texto) {
+
+    const limpio =
+        String(texto || "")
+            .replace(/[^0-9.\-]/g, "");
+
+    const numero =
+        Number(limpio);
+
+    return isNaN(numero) ? 0 : numero;
+
+}
+
+
+function parseFilasPegadas(texto) {
+
+    const lineas =
+        texto
+            .split(/\r?\n/)
+            .filter(
+                linea =>
+                    linea.trim() !== ""
             );
 
+    return lineas.map(
+        linea =>
+            linea.includes("\t")
+                ? linea.split("\t")
+                : linea.split(",")
+    );
+
+}
+
+
+function obtenerValorColumna(
+    fila,
+    campoDestino
+) {
+
+    for (
+        const [indiceStr, destino]
+        of Object.entries(
+            importMapeoColumnas
+        )
+    ) {
 
         if (
-            isNaN(
-                fechaHora.getTime()
-            )
+            destino === campoDestino
         ) {
 
-            alert(
-                "La fecha o la hora no son válidas."
+            return (
+                fila[Number(indiceStr)] ||
+                ""
+            ).trim();
+
+        }
+
+    }
+
+    return "";
+
+}
+
+
+
+/* PANEL PLEGABLE */
+
+function cerrarPanelImportar() {
+
+    panelImportar.classList.remove(
+        "abierto"
+    );
+
+    btnToggleImportar.classList.remove(
+        "abierto"
+    );
+
+}
+
+
+btnToggleImportar.addEventListener(
+    "click",
+    function() {
+
+        const abierto =
+            panelImportar
+                .classList
+                .contains("abierto");
+
+        if (abierto) {
+
+            cerrarPanelImportar();
+
+        } else {
+
+            panelImportar
+                .classList
+                .add("abierto");
+
+            btnToggleImportar
+                .classList
+                .add("abierto");
+
+        }
+
+    }
+);
+
+
+
+/* PASO 1 -> PASO 2 */
+
+btnAnalizarImportacion.addEventListener(
+    "click",
+    function() {
+
+        limpiarMensaje(
+            mensajeImportPaso1
+        );
+
+        const texto =
+            importTexto.value.trim();
+
+        if (!texto) {
+
+            mostrarMensaje(
+                mensajeImportPaso1,
+                "Pega primero los datos copiados de tu hoja.",
+                "error"
             );
 
             return;
 
         }
 
+        const filas =
+            parseFilasPegadas(
+                texto
+            );
 
-        await addDoc(
-            collection(
-                db,
-                "asistencias"
-            ),
-            {
-                alumnoId:
-                    alumnoActual.id,
+        if (
+            filas.length < 2
+        ) {
 
-                nombre:
-                    nombreCompleto(
-                        alumnoActual
-                    ),
+            mostrarMensaje(
+                mensajeImportPaso1,
+                "Necesito al menos el encabezado y una fila de datos.",
+                "error"
+            );
 
-                fecha:
-                    Timestamp.fromDate(
-                        fechaHora
-                    ),
+            return;
 
-                origen:
-                    "manual"
+        }
+
+        importEncabezados =
+            filas[0];
+
+        importFilasCrudas =
+            filas.slice(1);
+
+        importConteoFilas.textContent =
+            importFilasCrudas.length;
+
+        renderizarMapeoColumnas();
+
+        importPeriodoPago.value =
+            obtenerPeriodoActual();
+
+        importPaso2.style.display =
+            "block";
+
+        importPaso3.style.display =
+            "none";
+
+        importPaso4.style.display =
+            "none";
+
+        importPaso2.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+
+    }
+);
+
+
+function renderizarMapeoColumnas() {
+
+    mapeoColumnas.innerHTML = "";
+
+    importEncabezados.forEach(
+        (encabezado, indice) => {
+
+            const contenedor =
+                document.createElement(
+                    "div"
+                );
+
+            contenedor.className =
+                "campo";
+
+            const opciones =
+                CAMPOS_DESTINO_IMPORTACION
+                    .map(
+                        campo =>
+                            `<option value="${campo.value}">${campo.label}</option>`
+                    )
+                    .join("");
+
+            contenedor.innerHTML = `
+                <label>
+                    ${escaparHtml(
+                        encabezado ||
+                        `Columna ${indice + 1}`
+                    )}
+                </label>
+                <select
+                    data-indice="${indice}"
+                    class="select-mapeo-columna"
+                >
+                    ${opciones}
+                </select>
+            `;
+
+            mapeoColumnas.appendChild(
+                contenedor
+            );
+
+        }
+    );
+
+
+    /*
+     * Autodetección simple por nombre
+     * de encabezado. El orden importa:
+     * los patrones más específicos van
+     * antes que los genéricos.
+     */
+
+    const coincidencias = [
+        [/nombre/, "nombre"],
+        [/paterno/, "apellidoPaterno"],
+        [/materno/, "apellidoMaterno"],
+        [/nacimiento/, "fechaNacimiento"],
+        [/correo|email/, "correo"],
+        [/tel[eé]fono|celular/, "telefono"],
+        [/direcci[oó]n/, "direccion"],
+        [/civil/, "estadoCivil"],
+        [/ingreso/, "fechaIngreso"],
+        [/nfc/, "nfcUid"],
+        [/grupo/, "grupo"],
+        [/tarifa|cuota/, "tarifa"],
+        [/fecha.*pago/, "pagoFecha"],
+        [/monto/, "pagoMonto"],
+        [/m[eé]todo/, "pagoMetodo"],
+        [/nota/, "pagoNota"],
+        [/pag/, "pagoEstado"]
+    ];
+
+    mapeoColumnas
+        .querySelectorAll(
+            ".select-mapeo-columna"
+        )
+        .forEach(
+            select => {
+
+                const indice =
+                    Number(
+                        select.dataset.indice
+                    );
+
+                const texto =
+                    String(
+                        importEncabezados[
+                            indice
+                        ] || ""
+                    ).toLowerCase();
+
+                for (
+                    const [regex, valor]
+                    of coincidencias
+                ) {
+
+                    if (
+                        regex.test(texto)
+                    ) {
+
+                        select.value =
+                            valor;
+
+                        break;
+
+                    }
+
+                }
+
             }
         );
 
-
-        alert(
-            "Asistencia registrada correctamente."
-        );
-
-
-        await cargarAsistenciasAlumno(
-            alumnoActual.id
-        );
-
-
-        establecerFechaHoraAsistencia();
-
-
-    } catch (error) {
-
-        console.error(
-            "Error registrando asistencia:",
-            error
-        );
-
-
-        alert(
-            "No fue posible registrar la asistencia."
-        );
-
-    }
-
 }
 
 
-/* ======================================================
-   ESTABLECER FECHA Y HORA ACTUALES
-====================================================== */
 
-function establecerFechaHoraAsistencia() {
+/* PASO 2 -> PASO 3 */
 
-    const inputFecha =
-        document.getElementById(
-            "fechaAsistenciaManual"
+btnContinuarMapeo.addEventListener(
+    "click",
+    function() {
+
+        limpiarMensaje(
+            mensajeImportPaso2
         );
 
+        importMapeoColumnas = {};
 
-    const inputHora =
-        document.getElementById(
-            "horaAsistenciaManual"
-        );
+        mapeoColumnas
+            .querySelectorAll(
+                ".select-mapeo-columna"
+            )
+            .forEach(
+                select => {
 
-
-    if (
-        !inputFecha ||
-        !inputHora
-    ) {
-
-        return;
-
-    }
-
-
-    const ahora =
-        new Date();
-
-
-    const anio =
-        ahora.getFullYear();
-
-
-    const mes =
-        String(
-            ahora.getMonth() + 1
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    const dia =
-        String(
-            ahora.getDate()
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    const hora =
-        String(
-            ahora.getHours()
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    const minutos =
-        String(
-            ahora.getMinutes()
-        ).padStart(
-            2,
-            "0"
-        );
-
-
-    inputFecha.value =
-        `${anio}-${mes}-${dia}`;
-
-
-    inputHora.value =
-        `${hora}:${minutos}`;
-
-}
-
-async function cargarAsistenciasAlumno(
-    alumnoId
-) {
-
-    const contenedor =
-        document.getElementById(
-            "listaAsistenciasAlumno"
-        );
-
-    const contadorAnio =
-        document.getElementById(
-            "expAsistenciasAnio"
-        );
-
-    const ultimaAsistencia =
-        document.getElementById(
-            "expUltimaAsistencia"
-        );
-
-
-    if (!contenedor) {
-        return;
-    }
-
-
-    contenedor.innerHTML = `
-        <div class="cargando-asistencia">
-            Cargando asistencias...
-        </div>
-    `;
-
-
-    try {
-
-        const consulta =
-            query(
-                collection(
-                    db,
-                    "asistencias"
-                ),
-                where(
-                    "alumnoId",
-                    "==",
-                    alumnoId
-                )
-            );
-
-
-        const snapshot =
-            await getDocs(
-                consulta
-            );
-
-
-        const asistencias =
-            snapshot.docs.map(
-                documento => {
-
-                    return {
-                        id: documento.id,
-                        ...documento.data()
-                    };
+                    importMapeoColumnas[
+                        Number(
+                            select.dataset.indice
+                        )
+                    ] = select.value;
 
                 }
             );
 
-
-        /*
-         * Ordenar de la más reciente
-         * a la más antigua.
-         */
-
-        asistencias.sort(
-            function(a, b) {
-
-                const fechaA =
-                    a.fecha?.toDate
-                        ? a.fecha.toDate()
-                        : new Date(0);
-
-                const fechaB =
-                    b.fecha?.toDate
-                        ? b.fecha.toDate()
-                        : new Date(0);
-
-                return fechaB - fechaA;
-
-            }
-        );
-
-
-        /*
-         * Si no hay asistencias.
-         */
+        const destinos =
+            Object.values(
+                importMapeoColumnas
+            );
 
         if (
-            asistencias.length === 0
+            !destinos.includes("nombre") ||
+            !destinos.includes(
+                "apellidoPaterno"
+            )
         ) {
 
-            asistenciasAlumnoActualCache =
-                [];
-
-            contadorAnio.textContent =
-                "0";
-
-            ultimaAsistencia.textContent =
-                "—";
-
-
-            contenedor.innerHTML = `
-                <div class="sin-asistencias">
-                    📋 No hay asistencias registradas.
-                </div>
-            `;
-
-            await actualizarResumenAsistenciaAlumnoPorMes(
-                alumnoId
+            mostrarMensaje(
+                mensajeImportPaso2,
+                "Necesitas mapear al menos Nombre y Apellido paterno.",
+                "error"
             );
 
             return;
 
         }
 
+        if (
+            !destinos.includes("tarifa")
+        ) {
 
-        /*
-         * Contadores.
-         */
+            mostrarMensaje(
+                mensajeImportPaso2,
+                "Necesitas mapear una columna de Tarifa/cuota.",
+                "error"
+            );
 
-        const ahora =
-            new Date();
+            return;
 
-        const mesActual =
-            ahora.getMonth();
+        }
 
-        const anioActual =
-            ahora.getFullYear();
+        const hayColumnasPago =
+            destinos.some(
+                d => d.startsWith("pago")
+            );
+
+        if (
+            !importPeriodoPago.value
+        ) {
+
+            importPeriodoPago.value =
+                obtenerPeriodoActual();
+
+        }
+
+        importPeriodoSeleccionado =
+            hayColumnasPago
+                ? importPeriodoPago.value
+                : "";
+
+        renderizarResolucionGrupos(
+            destinos.includes("grupo")
+        );
+
+        renderizarResolucionTarifas();
+
+        renderizarResolucionEstadosPago(
+            hayColumnasPago
+        );
+
+        importPaso3.style.display =
+            "block";
+
+        importPaso4.style.display =
+            "none";
+
+        importPaso3.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+
+    }
+);
 
 
-        let asistenciasMes =
-            0;
+function renderizarResolucionGrupos(
+    hayColumnaGrupo
+) {
 
-        let asistenciasAnio =
-            0;
+    resolverGrupos.innerHTML =
+        "";
+
+    if (
+        !hayColumnaGrupo
+    ) {
+        return;
+    }
+
+    const valoresDistintos =
+        new Set();
+
+    importFilasCrudas.forEach(
+        fila => {
+
+            const valor =
+                obtenerValorColumna(
+                    fila,
+                    "grupo"
+                );
+
+            if (valor) {
+
+                valoresDistintos.add(
+                    valor
+                );
+
+            }
+
+        }
+    );
+
+    if (
+        valoresDistintos.size === 0
+    ) {
+        return;
+    }
+
+    let html =
+        "<h4>Grupos encontrados</h4>";
+
+    Array.from(
+        valoresDistintos
+    ).forEach(
+        valor => {
+
+            const coincidenciaExacta =
+                grupos.find(
+                    g =>
+                        String(
+                            g.nombre || ""
+                        ).toLowerCase() ===
+                        valor.toLowerCase()
+                );
+
+            const opciones =
+                grupos
+                    .map(
+                        g =>
+                            `<option value="${escaparHtml(
+                                g.nombre
+                            )}" ${
+                                coincidenciaExacta &&
+                                coincidenciaExacta.nombre === g.nombre
+                                    ? "selected"
+                                    : ""
+                            }>${escaparHtml(
+                                g.nombre
+                            )}</option>`
+                    )
+                    .join("");
+
+            html += `
+
+                <div
+                    class="campo"
+                    style="margin-bottom:10px;"
+                >
+
+                    <label>
+                        Valor en tu hoja: "${escaparHtml(
+                            valor
+                        )}"
+                    </label>
+
+                    <select
+                        class="select-resolver-grupo"
+                        data-valor="${escaparHtml(
+                            valor
+                        )}"
+                    >
+                        <option value="">
+                            Dejar sin grupo por ahora
+                        </option>
+
+                        ${opciones}
+
+                        <option value="__nuevo__">
+                            + Crear grupo "${escaparHtml(
+                                valor
+                            )}" en el catálogo
+                        </option>
+                    </select>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+    resolverGrupos.innerHTML =
+        html;
+
+}
 
 
-        asistencias.forEach(
-            function(asistencia) {
+function renderizarResolucionTarifas() {
+
+    const valoresDistintos =
+        new Set();
+
+    importFilasCrudas.forEach(
+        fila => {
+
+            const valor =
+                obtenerValorColumna(
+                    fila,
+                    "tarifa"
+                );
+
+            if (valor) {
+
+                valoresDistintos.add(
+                    valor
+                );
+
+            }
+
+        }
+    );
+
+    resolverTarifas.innerHTML =
+        "<h4>Tarifas encontradas</h4>";
+
+    Array.from(
+        valoresDistintos
+    ).forEach(
+        valor => {
+
+            const yaResuelto =
+                importTarifasResueltas[
+                    valor
+                ];
+
+            const opcionesExistentes =
+                tarifas
+                    .map(
+                        t =>
+                            `<option value="${t.id}" ${
+                                yaResuelto &&
+                                yaResuelto.id === t.id
+                                    ? "selected"
+                                    : ""
+                            }>${escaparHtml(
+                                t.nombre
+                            )} — ${formatearMoneda(
+                                t.cuotaBase
+                            )}</option>`
+                    )
+                    .join("");
+
+            const cuotaSugerida =
+                parseMontoFlexible(
+                    valor
+                );
+
+            const bloque =
+                document.createElement(
+                    "div"
+                );
+
+            bloque.style.background =
+                "#f9fafb";
+
+            bloque.style.padding =
+                "12px";
+
+            bloque.style.borderRadius =
+                "8px";
+
+            bloque.style.marginBottom =
+                "10px";
+
+            bloque.innerHTML = `
+
+                <div class="campo">
+
+                    <label>
+                        Valor en tu hoja: "${escaparHtml(
+                            valor
+                        )}"
+                    </label>
+
+                    <select
+                        class="select-resolver-tarifa"
+                        data-valor="${escaparHtml(
+                            valor
+                        )}"
+                    >
+                        <option value="">
+                            Seleccionar tarifa existente...
+                        </option>
+
+                        ${opcionesExistentes}
+
+                        <option value="__nueva__">
+                            + Crear nueva tarifa
+                        </option>
+                    </select>
+
+                </div>
+
+                <div
+                    class="grid-3 campo-nueva-tarifa"
+                    data-valor="${escaparHtml(
+                        valor
+                    )}"
+                    style="display:none;margin-top:8px;"
+                >
+
+                    <input
+                        type="text"
+                        class="nueva-tarifa-nombre"
+                        placeholder="Nombre de la tarifa"
+                        value="Tarifa ${escaparHtml(
+                            valor
+                        )}"
+                    >
+
+                    <input
+                        type="number"
+                        class="nueva-tarifa-cuota"
+                        placeholder="Cuota base"
+                        value="${
+                            cuotaSugerida || ""
+                        }"
+                        step="0.01"
+                        min="0"
+                    >
+
+                </div>
+
+            `;
+
+            resolverTarifas.appendChild(
+                bloque
+            );
+
+        }
+    );
+
+
+    resolverTarifas
+        .querySelectorAll(
+            ".select-resolver-tarifa"
+        )
+        .forEach(
+            select => {
+
+                select.addEventListener(
+                    "change",
+                    function() {
+
+                        const valor =
+                            this.dataset.valor;
+
+                        const campoNueva =
+                            resolverTarifas.querySelector(
+                                `.campo-nueva-tarifa[data-valor="${CSS.escape(
+                                    valor
+                                )}"]`
+                            );
+
+                        campoNueva.style.display =
+                            this.value === "__nueva__"
+                                ? "grid"
+                                : "none";
+
+                    }
+                );
+
+            }
+        );
+
+}
+
+
+function renderizarResolucionEstadosPago(
+    hayColumnasPago
+) {
+
+    resolverEstadosPago.innerHTML =
+        "";
+
+    if (!hayColumnasPago) {
+        return;
+    }
+
+    const tieneColumnaEstado =
+        Object.values(
+            importMapeoColumnas
+        ).includes("pagoEstado");
+
+    if (!tieneColumnaEstado) {
+
+        resolverEstadosPago.innerHTML = `
+            <p style="color:#6b7280;font-size:13px;">
+                No mapeaste una columna de "Pago: estado", así que
+                marcaremos como <strong>pagado</strong> a quien tenga
+                un monto mayor a 0, y como <strong>no pagado</strong>
+                al resto.
+            </p>
+        `;
+
+        return;
+
+    }
+
+    const valoresDistintos =
+        new Set();
+
+    importFilasCrudas.forEach(
+        fila => {
+
+            const valor =
+                obtenerValorColumna(
+                    fila,
+                    "pagoEstado"
+                );
+
+            if (valor) {
+
+                valoresDistintos.add(
+                    valor
+                );
+
+            }
+
+        }
+    );
+
+    let html =
+        "<h4>Estados de pago encontrados</h4>";
+
+    Array.from(
+        valoresDistintos
+    ).forEach(
+        valor => {
+
+            html += `
+
+                <div
+                    class="campo"
+                    style="margin-bottom:10px;"
+                >
+
+                    <label>
+                        "${escaparHtml(
+                            valor
+                        )}" significa:
+                    </label>
+
+                    <select
+                        class="select-resolver-estado"
+                        data-valor="${escaparHtml(
+                            valor
+                        )}"
+                    >
+                        <option value="pagado">
+                            🟢 Pagado
+                        </option>
+
+                        <option value="no_pagado">
+                            🔴 No pagado
+                        </option>
+
+                        <option value="ignorar">
+                            No crear registro de pago
+                        </option>
+                    </select>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+    resolverEstadosPago.innerHTML =
+        html;
+
+    resolverEstadosPago
+        .querySelectorAll(
+            ".select-resolver-estado"
+        )
+        .forEach(
+            select => {
+
+                const texto =
+                    select.dataset.valor.toLowerCase();
 
                 if (
-                    !asistencia.fecha?.toDate
+                    /no|pendiente|debe/.test(
+                        texto
+                    )
                 ) {
+
+                    select.value =
+                        "no_pagado";
+
+                } else if (
+                    /s[ií]|pag|ok|listo/.test(
+                        texto
+                    )
+                ) {
+
+                    select.value =
+                        "pagado";
+
+                }
+
+            }
+        );
+
+}
+
+
+
+/* PASO 3 -> PASO 4 */
+
+btnContinuarResolucion.addEventListener(
+    "click",
+    async function() {
+
+        limpiarMensaje(
+            mensajeImportPaso3
+        );
+
+        importGruposResueltos = {};
+
+        const selectsGrupo =
+            resolverGrupos.querySelectorAll(
+                ".select-resolver-grupo"
+            );
+
+        for (
+            const select
+            of selectsGrupo
+        ) {
+
+            const valorOriginal =
+                select.dataset.valor;
+
+            let valorFinal =
+                select.value;
+
+            if (
+                valorFinal === "__nuevo__"
+            ) {
+
+                const yaExisteEnCatalogo =
+                    grupos.some(
+                        g =>
+                            String(
+                                g.nombre || ""
+                            ).toLowerCase() ===
+                            valorOriginal.toLowerCase()
+                    );
+
+                if (
+                    !yaExisteEnCatalogo
+                ) {
+
+                    try {
+
+                        const nuevoGrupoRef =
+                            await addDoc(
+                                collection(
+                                    db,
+                                    "grupos"
+                                ),
+                                {
+                                    nombre: valorOriginal
+                                }
+                            );
+
+                        grupos.push({
+                            id: nuevoGrupoRef.id,
+                            nombre: valorOriginal
+                        });
+
+                    } catch (error) {
+
+                        console.error(
+                            error
+                        );
+
+                        mostrarMensaje(
+                            mensajeImportPaso3,
+                            `No fue posible crear el grupo "${valorOriginal}".`,
+                            "error"
+                        );
+
+                        return;
+
+                    }
+
+                }
+
+                valorFinal =
+                    valorOriginal;
+
+            }
+
+            importGruposResueltos[
+                valorOriginal
+            ] = valorFinal;
+
+        }
+
+        renderizarGrupos();
+
+        poblarSelectsGrupos();
+
+
+        importTarifasResueltas = {};
+
+        const selectsTarifa =
+            resolverTarifas.querySelectorAll(
+                ".select-resolver-tarifa"
+            );
+
+        for (
+            const select
+            of selectsTarifa
+        ) {
+
+            const valorOriginal =
+                select.dataset.valor;
+
+            let tarifaId =
+                select.value;
+
+            if (!tarifaId) {
+
+                mostrarMensaje(
+                    mensajeImportPaso3,
+                    `Falta resolver la tarifa "${valorOriginal}".`,
+                    "error"
+                );
+
+                return;
+
+            }
+
+            if (
+                tarifaId === "__nueva__"
+            ) {
+
+                const contenedor =
+                    resolverTarifas.querySelector(
+                        `.campo-nueva-tarifa[data-valor="${CSS.escape(
+                            valorOriginal
+                        )}"]`
+                    );
+
+                const nombre =
+                    contenedor
+                        .querySelector(
+                            ".nueva-tarifa-nombre"
+                        )
+                        .value
+                        .trim();
+
+                const cuotaBase =
+                    Number(
+                        contenedor
+                            .querySelector(
+                                ".nueva-tarifa-cuota"
+                            )
+                            .value || 0
+                    );
+
+                if (
+                    !nombre ||
+                    !cuotaBase
+                ) {
+
+                    mostrarMensaje(
+                        mensajeImportPaso3,
+                        `Completa nombre y cuota para la nueva tarifa de "${valorOriginal}".`,
+                        "error"
+                    );
 
                     return;
 
                 }
 
+                try {
 
-                const fecha =
-                    asistencia.fecha.toDate();
+                    const nuevaRef =
+                        await addDoc(
+                            collection(
+                                db,
+                                "tarifas"
+                            ),
+                            {
+                                nombre,
+                                cuotaBase
+                            }
+                        );
 
+                    tarifaId =
+                        nuevaRef.id;
+
+                    tarifasMap[
+                        tarifaId
+                    ] = {
+                        id: tarifaId,
+                        nombre,
+                        cuotaBase
+                    };
+
+                    tarifas.push(
+                        tarifasMap[
+                            tarifaId
+                        ]
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        error
+                    );
+
+                    mostrarMensaje(
+                        mensajeImportPaso3,
+                        "No fue posible crear una de las tarifas nuevas.",
+                        "error"
+                    );
+
+                    return;
+
+                }
+
+            }
+
+            importTarifasResueltas[
+                valorOriginal
+            ] = tarifasMap[
+                tarifaId
+            ];
+
+        }
+
+
+        renderizarTarifas();
+
+        poblarSelectsTarifas();
+
+
+        importEstadosResueltos = {};
+
+        resolverEstadosPago
+            .querySelectorAll(
+                ".select-resolver-estado"
+            )
+            .forEach(
+                select => {
+
+                    importEstadosResueltos[
+                        select.dataset.valor
+                    ] = select.value;
+
+                }
+            );
+
+
+        construirVistaPrevia();
+
+        importPaso4.style.display =
+            "block";
+
+        importPaso4.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+
+    }
+);
+
+
+function construirVistaPrevia() {
+
+    const destinos =
+        Object.values(
+            importMapeoColumnas
+        );
+
+    const hayColumnasPago =
+        destinos.includes(
+            "pagoMonto"
+        ) ||
+        destinos.includes(
+            "pagoEstado"
+        ) ||
+        destinos.includes(
+            "pagoFecha"
+        );
+
+    importPreviewFilas =
+        importFilasCrudas.map(
+            fila => {
+
+                const nombre =
+                    obtenerValorColumna(
+                        fila,
+                        "nombre"
+                    );
+
+                const apellidoPaterno =
+                    obtenerValorColumna(
+                        fila,
+                        "apellidoPaterno"
+                    );
+
+                const apellidoMaterno =
+                    obtenerValorColumna(
+                        fila,
+                        "apellidoMaterno"
+                    );
+
+                const nombreCompletoFila =
+                    [
+                        nombre,
+                        apellidoPaterno,
+                        apellidoMaterno
+                    ]
+                        .filter(Boolean)
+                        .join(" ");
+
+                const valorTarifaOriginal =
+                    obtenerValorColumna(
+                        fila,
+                        "tarifa"
+                    );
+
+                const tarifaResuelta =
+                    importTarifasResueltas[
+                        valorTarifaOriginal
+                    ];
+
+                const valorGrupoOriginal =
+                    obtenerValorColumna(
+                        fila,
+                        "grupo"
+                    );
+
+                const grupoResuelto =
+                    valorGrupoOriginal
+                        ? (
+                            importGruposResueltos[
+                                valorGrupoOriginal
+                            ] || ""
+                        )
+                        : "";
+
+                let pagoInfo =
+                    null;
 
                 if (
-                    fecha.getFullYear()
-                    ===
-                    anioActual
+                    hayColumnasPago
                 ) {
 
-                    asistenciasAnio++;
+                    const montoTexto =
+                        obtenerValorColumna(
+                            fila,
+                            "pagoMonto"
+                        );
 
+                    const monto =
+                        parseMontoFlexible(
+                            montoTexto
+                        );
+
+                    const valorEstadoOriginal =
+                        obtenerValorColumna(
+                            fila,
+                            "pagoEstado"
+                        );
+
+                    let estado;
 
                     if (
-                        fecha.getMonth()
-                        ===
-                        mesActual
+                        valorEstadoOriginal
                     ) {
 
-                        asistenciasMes++;
+                        estado =
+                            importEstadosResueltos[
+                                valorEstadoOriginal
+                            ] || "no_pagado";
+
+                    } else {
+
+                        estado =
+                            monto > 0
+                                ? "pagado"
+                                : "no_pagado";
+
+                    }
+
+                    if (
+                        estado !== "ignorar"
+                    ) {
+
+                        pagoInfo = {
+
+                            estado,
+
+                            monto:
+                                estado === "pagado"
+                                    ? monto
+                                    : 0,
+
+                            fecha:
+                                parseFechaFlexible(
+                                    obtenerValorColumna(
+                                        fila,
+                                        "pagoFecha"
+                                    )
+                                ),
+
+                            metodo:
+                                obtenerValorColumna(
+                                    fila,
+                                    "pagoMetodo"
+                                ),
+
+                            nota:
+                                obtenerValorColumna(
+                                    fila,
+                                    "pagoNota"
+                                )
+
+                        };
 
                     }
 
                 }
 
+                const duplicado =
+                    alumnos.some(
+                        a =>
+                            nombreCompleto(
+                                a
+                            ).toLowerCase() ===
+                            nombreCompletoFila.toLowerCase()
+                    );
+
+                return {
+
+                    datosAlumno: {
+
+                        nombre,
+
+                        apellidoPaterno,
+
+                        apellidoMaterno,
+
+                        fechaNacimiento:
+                            parseFechaFlexible(
+                                obtenerValorColumna(
+                                    fila,
+                                    "fechaNacimiento"
+                                )
+                            ),
+
+                        correo:
+                            obtenerValorColumna(
+                                fila,
+                                "correo"
+                            ),
+
+                        telefono:
+                            obtenerValorColumna(
+                                fila,
+                                "telefono"
+                            ),
+
+                        direccion:
+                            obtenerValorColumna(
+                                fila,
+                                "direccion"
+                            ),
+
+                        estadoCivil:
+                            obtenerValorColumna(
+                                fila,
+                                "estadoCivil"
+                            ),
+
+                        fechaIngreso:
+                            parseFechaFlexible(
+                                obtenerValorColumna(
+                                    fila,
+                                    "fechaIngreso"
+                                )
+                            ),
+
+                        nfcUid:
+                            obtenerValorColumna(
+                                fila,
+                                "nfcUid"
+                            ),
+
+                        grupo:
+                            grupoResuelto
+
+                    },
+
+                    nombreCompletoFila,
+
+                    tarifaResuelta,
+
+                    grupoResuelto,
+
+                    pagoInfo,
+
+                    duplicado,
+
+                    incluir: !duplicado
+
+                };
+
             }
         );
 
+    renderizarPreviewImportacion();
 
-        contadorAnio.textContent =
-            asistenciasAnio;
-
-
-        asistenciasAlumnoActualCache =
-            asistencias;
-
-        await actualizarResumenAsistenciaAlumnoPorMes(
-            alumnoId
-        );
+}
 
 
-        /*
-         * Última asistencia.
-         */
+function renderizarPreviewImportacion() {
 
-        const ultima =
-            asistencias[0];
+    listaPreviewImportacion.innerHTML =
+        "";
 
+    importPreviewFilas.forEach(
+        (item, indice) => {
 
-        if (
-            ultima.fecha?.toDate
-        ) {
-
-            ultimaAsistencia.textContent =
-                formatearFechaHoraAsistencia(
-                    ultima.fecha.toDate()
+            const fila =
+                document.createElement(
+                    "tr"
                 );
 
-        } else {
+            fila.innerHTML = `
 
-            ultimaAsistencia.textContent =
-                "—";
-
-        }
-
-
-        /*
-         * Construir historial.
-         */
-
-        contenedor.innerHTML =
-            asistencias
-                .map(
-                    function(asistencia) {
-
-                        const fecha =
-                            asistencia.fecha?.toDate
-                                ? asistencia.fecha.toDate()
-                                : null;
-
-
-                        if (!fecha) {
-
-                            return "";
-
+                <td>
+                    <input
+                        type="checkbox"
+                        class="check-incluir-importacion"
+                        data-indice="${indice}"
+                        ${
+                            item.incluir
+                                ? "checked"
+                                : ""
                         }
+                    >
+                </td>
 
+                <td>
+                    ${escaparHtml(
+                        item.nombreCompletoFila ||
+                        "—"
+                    )}
+                </td>
 
-                        const fechaTexto =
-                            fecha.toLocaleDateString(
-                                "es-MX",
-                                {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric"
-                                }
-                            );
-
-
-                        const horaTexto =
-                            fecha.toLocaleTimeString(
-                                "es-MX",
-                                {
-                                    hour: "2-digit",
-                                    minute: "2-digit"
-                                }
-                            );
-
-
-                        const origen =
-                            asistencia.origen === "kiosco"
-                                ? "🪪 Kiosco"
-                                : asistencia.origen === "manual"
-                                    ? "✍️ Manual"
-                                    : asistencia.origen || "—";
-
-
-                        return `
-
-                            <div class="fila-asistencia-alumno">
-
-                                <span>
-                                    ${fechaTexto}
-                                </span>
-
-
-                                <span>
-                                    ${horaTexto}
-                                </span>
-
-
-                                <span>
-                                    ${origen}
-                                </span>
-
-
-                                <span>
-
-                                    <button
-                                        type="button"
-                                        onclick="editarAsistencia('${asistencia.id}')"
-                                        title="Editar asistencia"
-                                    >
-                                        ✏️
-                                    </button>
-
-
-                                    <button
-                                        type="button"
-                                        onclick="eliminarAsistencia('${asistencia.id}')"
-                                        title="Eliminar asistencia"
-                                    >
-                                        🗑️
-                                    </button>
-
-                                </span>
-
-                            </div>
-
-                        `;
-
+                <td>
+                    ${
+                        item.grupoResuelto
+                            ? escaparHtml(
+                                item.grupoResuelto
+                            )
+                            : "—"
                     }
-                )
-                .join("");
+                </td>
 
+                <td>
+                    ${
+                        item.tarifaResuelta
+                            ? escaparHtml(
+                                item.tarifaResuelta.nombre
+                            ) +
+                              " — " +
+                              formatearMoneda(
+                                  item.tarifaResuelta.cuotaBase
+                              )
+                            : "—"
+                    }
+                </td>
 
-    } catch (error) {
+                <td>
+                    ${
+                        item.pagoInfo
+                            ? (
+                                item.pagoInfo.estado === "pagado"
+                                    ? "🟢 " +
+                                      formatearMoneda(
+                                          item.pagoInfo.monto
+                                      )
+                                    : "🔴 No pagó"
+                            )
+                            : "—"
+                    }
+                </td>
 
-        console.error(
-            "Error cargando asistencias:",
-            error
-        );
+                <td>
+                    ${
+                        item.duplicado
+                            ? '<span class="estado-inactivo">Posible duplicado</span>'
+                            : '<span class="estado-activo">Nuevo</span>'
+                    }
+                </td>
 
+            `;
 
-        contadorAnio.textContent =
-            "—";
+            listaPreviewImportacion.appendChild(
+                fila
+            );
 
-        ultimaAsistencia.textContent =
-            "—";
-
-
-        contenedor.innerHTML = `
-            <div class="error-asistencia">
-                ⚠️ No fue posible cargar
-                el historial de asistencias.
-            </div>
-        `;
-
-        asistenciasAlumnoActualCache =
-            [];
-
-        resumenAsistenciaAlumno.innerHTML = `
-            <div class="cargando-asistencia">
-                No fue posible calcular el resumen.
-            </div>
-        `;
-
-    }
-
-}
-
-
-/* ======================================================
-   FORMATEAR FECHA Y HORA
-====================================================== */
-
-function formatearFechaHoraAsistencia(
-    fecha
-) {
-
-    return fecha.toLocaleDateString(
-        "es-MX",
-        {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
-        }
-    )
-    +
-    " "
-    +
-    fecha.toLocaleTimeString(
-        "es-MX",
-        {
-            hour: "2-digit",
-            minute: "2-digit"
         }
     );
 
-}
+    listaPreviewImportacion
+        .querySelectorAll(
+            ".check-incluir-importacion"
+        )
+        .forEach(
+            casilla => {
 
+                casilla.addEventListener(
+                    "change",
+                    function() {
 
-/* ======================================================
-   EDITAR ASISTENCIA
-====================================================== */
+                        importPreviewFilas[
+                            Number(
+                                this.dataset.indice
+                            )
+                        ].incluir =
+                            this.checked;
 
-async function editarAsistencia(
-    asistenciaId
-) {
+                        actualizarTextoBotonImportar();
 
-    try {
+                    }
+                );
 
-        const asistenciaRef =
-            doc(
-                db,
-                "asistencias",
-                asistenciaId
-            );
-
-
-        const asistenciaSnap =
-            await getDoc(
-                asistenciaRef
-            );
-
-
-        if (
-            !asistenciaSnap.exists()
-        ) {
-
-            alert(
-                "La asistencia ya no existe."
-            );
-
-            return;
-
-        }
-
-
-        const asistencia =
-            asistenciaSnap.data();
-
-
-        if (
-            !asistencia.fecha?.toDate
-        ) {
-
-            alert(
-                "Esta asistencia no tiene una fecha válida."
-            );
-
-            return;
-
-        }
-
-
-        const fecha =
-            asistencia.fecha.toDate();
-
-
-        const anio =
-            fecha.getFullYear();
-
-
-        const mes =
-            String(
-                fecha.getMonth() + 1
-            ).padStart(
-                2,
-                "0"
-            );
-
-
-        const dia =
-            String(
-                fecha.getDate()
-            ).padStart(
-                2,
-                "0"
-            );
-
-
-        const hora =
-            String(
-                fecha.getHours()
-            ).padStart(
-                2,
-                "0"
-            );
-
-
-        const minutos =
-            String(
-                fecha.getMinutes()
-            ).padStart(
-                2,
-                "0"
-            );
-
-
-        /*
-         * Pedir nueva fecha.
-         */
-
-        const nuevaFecha =
-            prompt(
-                "Nueva fecha (AAAA-MM-DD):",
-                `${anio}-${mes}-${dia}`
-            );
-
-
-        if (
-            nuevaFecha === null
-        ) {
-
-            return;
-
-        }
-
-
-        /*
-         * Pedir nueva hora.
-         */
-
-        const nuevaHora =
-            prompt(
-                "Nueva hora (HH:MM):",
-                `${hora}:${minutos}`
-            );
-
-
-        if (
-            nuevaHora === null
-        ) {
-
-            return;
-
-        }
-
-
-        /*
-         * Crear nueva fecha.
-         */
-
-        const nuevaFechaHora =
-            new Date(
-                `${nuevaFecha}T${nuevaHora}`
-            );
-
-
-        if (
-            isNaN(
-                nuevaFechaHora.getTime()
-            )
-        ) {
-
-            alert(
-                "La fecha o la hora no son válidas."
-            );
-
-            return;
-
-        }
-
-
-        /*
-         * Guardar cambios.
-         */
-
-        await updateDoc(
-            asistenciaRef,
-            {
-                fecha:
-                    Timestamp.fromDate(
-                        nuevaFechaHora
-                    ),
-
-                origen:
-                    "manual"
             }
         );
 
-
-        alert(
-            "Asistencia actualizada correctamente."
-        );
-
-
-        /*
-         * Recargar historial.
-         */
-
-        await cargarAsistenciasAlumno(
-            alumnoActual.id
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Error editando asistencia:",
-            error
-        );
-
-
-        alert(
-            "No fue posible editar la asistencia."
-        );
-
-    }
+    actualizarTextoBotonImportar();
 
 }
 
 
-/* ======================================================
-   ELIMINAR ASISTENCIA
-====================================================== */
+function actualizarTextoBotonImportar() {
 
-async function eliminarAsistencia(
-    asistenciaId
-) {
+    const total =
+        importPreviewFilas.filter(
+            f => f.incluir
+        ).length;
 
-    const confirmar =
-        confirm(
-            "¿Seguro que quieres eliminar esta asistencia?\n\nEsta acción no se puede deshacer."
-        );
-
-
-    if (
-        !confirmar
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        await deleteDoc(
-            doc(
-                db,
-                "asistencias",
-                asistenciaId
-            )
-        );
-
-
-        alert(
-            "Asistencia eliminada correctamente."
-        );
-
-
-        /*
-         * Recargar historial.
-         */
-
-        await cargarAsistenciasAlumno(
-            alumnoActual.id
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Error eliminando asistencia:",
-            error
-        );
-
-
-        alert(
-            "No fue posible eliminar la asistencia."
-        );
-
-    }
+    btnImportarAhora.textContent =
+        `💾 Importar ${total} alumno(s)`;
 
 }
 
 
-/* ======================================================
-   HACER LAS FUNCIONES DISPONIBLES
-   PARA LOS BOTONES HTML
-====================================================== */
+importSeleccionarTodos.addEventListener(
+    "change",
+    function() {
 
-window.editarAsistencia =
-    editarAsistencia;
+        const marcar =
+            this.checked;
 
-window.eliminarAsistencia =
-    eliminarAsistencia;
+        importPreviewFilas.forEach(
+            f => {
+                f.incluir = marcar;
+            }
+        );
 
+        renderizarPreviewImportacion();
 
-
-document
-    .getElementById(
-        "btnRegistrarAsistenciaManual"
-    )
-    ?.addEventListener(
-        "click",
-        registrarAsistenciaManual
-    );
+    }
+);
 
 
-/* ======================================================
-   COBRANZA MENSUAL
-====================================================== */
 
-btnCargarCobranza.addEventListener(
+/* IMPORTAR AHORA */
+
+btnImportarAhora.addEventListener(
     "click",
     async function() {
 
-        cobranzaCargadaAlMenosUnaVez =
+        limpiarMensaje(
+            mensajeImportPaso4
+        );
+
+        const filasAIncluir =
+            importPreviewFilas.filter(
+                f => f.incluir
+            );
+
+        if (
+            filasAIncluir.length === 0
+        ) {
+
+            mostrarMensaje(
+                mensajeImportPaso4,
+                "No hay alumnos seleccionados para importar.",
+                "error"
+            );
+
+            return;
+
+        }
+
+        btnImportarAhora.disabled =
             true;
+
+        btnImportarAhora.textContent =
+            "Importando...";
+
+        let exitosos = 0;
+
+        let fallidos = 0;
+
+        for (
+            const item
+            of filasAIncluir
+        ) {
+
+            try {
+
+                const tarifa =
+                    item.tarifaResuelta;
+
+                const datosAlumno = {
+
+                    ...item.datosAlumno,
+
+                    fechaRegistro:
+                        Timestamp.now(),
+
+                    fechaBaja: "",
+
+                    activo: true,
+
+                    grado: "",
+
+                    foto: "",
+
+                    tarifaId:
+                        tarifa.id,
+
+                    tipoTarifa:
+                        "normal",
+
+                    tipoDescuentoBeca:
+                        "porcentaje",
+
+                    porcentajeBeca: 0,
+
+                    montoDescuentoBeca: 0,
+
+                    cuotaMensual:
+                        Number(
+                            tarifa.cuotaBase ||
+                            0
+                        )
+
+                };
+
+                const nuevoAlumnoRef =
+                    await addDoc(
+                        collection(
+                            db,
+                            "alumnos"
+                        ),
+                        datosAlumno
+                    );
+
+                if (
+                    item.pagoInfo
+                ) {
+
+                    let fechaPagoTimestamp =
+                        null;
+
+                    if (
+                        item.pagoInfo.estado === "pagado" &&
+                        item.pagoInfo.fecha
+                    ) {
+
+                        fechaPagoTimestamp =
+                            Timestamp.fromDate(
+                                new Date(
+                                    `${item.pagoInfo.fecha}T12:00:00`
+                                )
+                            );
+
+                    }
+
+                    await addDoc(
+                        collection(
+                            db,
+                            "pagos"
+                        ),
+                        {
+
+                            alumnoId:
+                                nuevoAlumnoRef.id,
+
+                            alumnoNombre:
+                                item.nombreCompletoFila,
+
+                            tipo:
+                                "mensualidad",
+
+                            periodo:
+                                importPeriodoSeleccionado ||
+                                obtenerPeriodoActual(),
+
+                            estado:
+                                item.pagoInfo.estado,
+
+                            monto:
+                                item.pagoInfo.monto,
+
+                            fechaPago:
+                                fechaPagoTimestamp,
+
+                            metodoPago:
+                                item.pagoInfo.metodo || "",
+
+                            nota:
+                                item.pagoInfo.nota ||
+                                "Importado desde Google Sheets",
+
+                            cuotaReferencia:
+                                Number(
+                                    tarifa.cuotaBase ||
+                                    0
+                                ),
+
+                            tarifaId:
+                                tarifa.id,
+
+                            tipoTarifa:
+                                "normal",
+
+                            porcentajeBeca: 0,
+
+                            registradoPorUid:
+                                usuarioActual?.uid ||
+                                "",
+
+                            registradoPorCorreo:
+                                usuarioActual?.email ||
+                                "",
+
+                            fechaRegistro:
+                                Timestamp.now()
+
+                        }
+                    );
+
+                }
+
+                exitosos++;
+
+            } catch (error) {
+
+                console.error(
+                    "Error importando alumno:",
+                    error
+                );
+
+                fallidos++;
+
+            }
+
+        }
+
+        await cargarAlumnos();
 
         await cargarCobranzaPeriodo();
 
+        mostrarMensaje(
+            mensajeImportPaso4,
+            `Importación terminada: ${exitosos} alumno(s) agregado(s)${
+                fallidos
+                    ? `, ${fallidos} con error`
+                    : ""
+            }.`,
+            fallidos ? "error" : "ok"
+        );
+
+        btnImportarAhora.disabled =
+            false;
+
+        actualizarTextoBotonImportar();
+
     }
 );
 
 
-cobranzaPeriodoInput.addEventListener(
-    "change",
+btnReiniciarImportacion.addEventListener(
+    "click",
     function() {
 
-        if (
-            !cobranzaCargadaAlMenosUnaVez
-        ) {
-            return;
-        }
+        importTexto.value = "";
 
-        cargarCobranzaPeriodo();
+        importEncabezados = [];
+
+        importFilasCrudas = [];
+
+        importMapeoColumnas = {};
+
+        importTarifasResueltas = {};
+
+        importEstadosResueltos = {};
+
+        importPreviewFilas = [];
+
+        limpiarMensaje(
+            mensajeImportPaso1
+        );
+
+        limpiarMensaje(
+            mensajeImportPaso2
+        );
+
+        limpiarMensaje(
+            mensajeImportPaso3
+        );
+
+        limpiarMensaje(
+            mensajeImportPaso4
+        );
+
+        importPaso2.style.display =
+            "none";
+
+        importPaso3.style.display =
+            "none";
+
+        importPaso4.style.display =
+            "none";
+
+        importPaso1.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
 
     }
 );
-
-cobranzaFiltroEstadoAlumno.addEventListener(
-    "change",
-    function() {
-
-        if (
-            !cobranzaCargadaAlMenosUnaVez
-        ) {
-            return;
-        }
-
-        renderizarCobranza();
-
-    }
-);
-
-cobranzaFiltroPago.addEventListener(
-    "change",
-    function() {
-
-        if (
-            !cobranzaCargadaAlMenosUnaVez
-        ) {
-            return;
-        }
-
-        renderizarCobranza();
-
-    }
-);
-
-
-
-

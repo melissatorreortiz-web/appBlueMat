@@ -1,22 +1,27 @@
+// Blue Mat Academy - módulo separado
+
 /* ======================================================
-   GRUPOS (CATÁLOGO)
+   USUARIOS
 ====================================================== */
 
-async function cargarGrupos() {
+async function cargarUsuarios() {
 
     try {
 
         const snapshot =
             await getDocs(
-                collection(db, "grupos")
+                collection(
+                    db,
+                    "usuarios"
+                )
             );
 
-        grupos = [];
+        usuarios = [];
 
         snapshot.forEach(
             documento => {
 
-                grupos.push({
+                usuarios.push({
                     id: documento.id,
                     ...documento.data()
                 });
@@ -24,7 +29,7 @@ async function cargarGrupos() {
             }
         );
 
-        grupos.sort(
+        usuarios.sort(
             (a, b) =>
                 String(
                     a.nombre || ""
@@ -36,32 +41,63 @@ async function cargarGrupos() {
                 )
         );
 
-        renderizarGrupos();
-
-        poblarSelectsGrupos();
+        renderizarUsuarios();
 
     } catch (error) {
 
         console.error(
-            "Error cargando grupos:",
+            "Error cargando usuarios:",
             error
         );
+
+        listaUsuarios.innerHTML = `
+            <tr>
+                <td colspan="5">
+                    No fue posible cargar los usuarios.
+                </td>
+            </tr>
+        `;
 
     }
 
 }
 
 
-function renderizarGrupos() {
+function etiquetaRol(
+    rol
+) {
 
-    listaGrupos.innerHTML = "";
+    if (rol === "admin") {
+        return "Administrador";
+    }
 
-    if (grupos.length === 0) {
+    if (rol === "recepcion") {
+        return "Recepción";
+    }
 
-        listaGrupos.innerHTML = `
+    if (rol === "instructor") {
+        return "Instructor";
+    }
+
+    return textoSeguro(
+        rol
+    );
+
+}
+
+
+function renderizarUsuarios() {
+
+    listaUsuarios.innerHTML = "";
+
+    if (
+        usuarios.length === 0
+    ) {
+
+        listaUsuarios.innerHTML = `
             <tr>
-                <td colspan="2">
-                    No hay grupos registrados.
+                <td colspan="5">
+                    No hay usuarios registrados.
                 </td>
             </tr>
         `;
@@ -70,37 +106,109 @@ function renderizarGrupos() {
 
     }
 
-    grupos.forEach(
-        grupo => {
+    usuarios.forEach(
+        usuario => {
 
             const fila =
                 document.createElement(
                     "tr"
                 );
 
+            const nombreApellidos =
+                [
+                    usuario.nombre,
+                    usuario.Apellidos ||
+                    usuario.apellidos
+                ]
+                    .filter(Boolean)
+                    .join(" ");
+
             fila.innerHTML = `
+
+                <td>
+                    <strong>
+                        ${escaparHtml(
+                            textoSeguro(
+                                nombreApellidos
+                            )
+                        )}
+                    </strong>
+                </td>
+
                 <td>
                     ${escaparHtml(
-                        grupo.nombre
+                        textoSeguro(
+                            usuario.correo
+                        )
                     )}
                 </td>
 
                 <td>
+                    ${escaparHtml(
+                        etiquetaRol(
+                            usuario.rol
+                        )
+                    )}
+                </td>
+
+                <td>
+                    ${
+                        usuario.activo === true
+
+                        ? `
+                            <span class="estado-activo">
+                                🟢 Activo
+                            </span>
+                          `
+
+                        : `
+                            <span class="estado-inactivo">
+                                🔴 Inactivo
+                            </span>
+                          `
+                    }
+                </td>
+
+                <td>
+
                     <button
                         type="button"
                         class="
                             btn-principal
                             boton-fila
-                            btn-editar-grupo
+                            btn-editar-usuario
                         "
-                        data-id="${grupo.id}"
+                        data-id="${usuario.id}"
                     >
                         ✏️ Editar
                     </button>
+
+                    ${
+                        usuario.correo
+
+                        ? `
+                            <button
+                                type="button"
+                                class="
+                                    btn-secundario
+                                    boton-fila
+                                    btn-resetear-password
+                                "
+                                data-id="${usuario.id}"
+                                style="margin-left:6px;"
+                            >
+                                🔑 Restablecer contraseña
+                            </button>
+                          `
+
+                        : ""
+                    }
+
                 </td>
+
             `;
 
-            listaGrupos.appendChild(
+            listaUsuarios.appendChild(
                 fila
             );
 
@@ -108,9 +216,9 @@ function renderizarGrupos() {
     );
 
 
-    listaGrupos
+    listaUsuarios
         .querySelectorAll(
-            ".btn-editar-grupo"
+            ".btn-editar-usuario"
         )
         .forEach(
             boton => {
@@ -119,17 +227,17 @@ function renderizarGrupos() {
                     "click",
                     function() {
 
-                        const grupo =
-                            grupos.find(
-                                g =>
-                                    g.id ===
+                        const usuario =
+                            usuarios.find(
+                                u =>
+                                    u.id ===
                                     this.dataset.id
                             );
 
-                        if (grupo) {
+                        if (usuario) {
 
-                            iniciarEdicionGrupo(
-                                grupo
+                            iniciarEdicionUsuario(
+                                usuario
                             );
 
                         }
@@ -140,211 +248,67 @@ function renderizarGrupos() {
             }
         );
 
-}
 
-
-/*
- * Abre el panel de grupo ya con los
- * datos de un grupo existente, para
- * corregir su nombre.
- */
-
-function obtenerDiasClaseSeleccionados() {
-
-    return Array.from(
-        document.querySelectorAll(
-            'input[name="grupoDiaClase"]:checked'
-        )
-    ).map(
-        checkbox => Number(checkbox.value)
-    );
-
-}
-
-
-function nombreMesDesdePeriodo(mesTexto) {
-
-    const [anio, mes] = mesTexto.split("-").map(Number);
-
-    if (!anio || !mes) {
-        return mesTexto;
-    }
-
-    return new Date(anio, mes - 1, 1).toLocaleDateString(
-        "es-MX",
-        {
-            month: "long",
-            year: "numeric"
-        }
-    );
-
-}
-
-
-function iniciarEdicionGrupo(
-    grupo
-) {
-
-    grupoEditandoId =
-        grupo.id;
-
-    grupoEditandoNombreAnterior =
-        grupo.nombre;
-
-    document
-        .getElementById(
-            "grupoNombre"
-        )
-        .value =
-        grupo.nombre;
-
-    document
-        .getElementById(
-            "grupoDisciplina"
-        )
-        .value =
-        grupo.disciplina || "";
-
-    document
+    listaUsuarios
         .querySelectorAll(
-            'input[name="grupoDiaClase"]'
+            ".btn-resetear-password"
         )
         .forEach(
-            checkbox => {
-                checkbox.checked =
-                    Array.isArray(grupo.diasClase) &&
-                    grupo.diasClase.includes(Number(checkbox.value));
-            }
-        );
+            boton => {
 
-    btnGuardarGrupo.textContent =
-        "Guardar cambios";
+                boton.addEventListener(
+                    "click",
+                    async function() {
 
-    accionMasivaGrupo.innerHTML =
-        "";
+                        const usuario =
+                            usuarios.find(
+                                u =>
+                                    u.id ===
+                                    this.dataset.id
+                            );
 
-    limpiarMensaje(
-        mensajeGrupo
-    );
+                        if (
+                            !usuario ||
+                            !usuario.correo
+                        ) {
+                            return;
+                        }
 
-    panelAltaGrupo.classList.add(
-        "abierto"
-    );
+                        this.disabled =
+                            true;
 
-    btnToggleGrupo.classList.add(
-        "abierto"
-    );
+                        try {
 
-    panelAltaGrupo.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
+                            await sendPasswordResetEmail(
+                                auth,
+                                usuario.correo
+                            );
 
-}
+                            mostrarMensaje(
+                                mensajeUsuario,
+                                `Se envió un correo de restablecimiento a ${usuario.correo}.`,
+                                "ok"
+                            );
 
+                        } catch (error) {
 
-/*
- * Después de renombrar un grupo, si había
- * alumnos con el nombre anterior asignado,
- * ofrece actualizarlos también en un solo
- * paso (sin tocar nada si no se confirma).
- */
+                            console.error(
+                                error
+                            );
 
-function ofrecerActualizacionMasivaGrupo(
-    nombreAnterior,
-    nombreNuevo
-) {
+                            mostrarMensaje(
+                                mensajeUsuario,
+                                "No fue posible enviar el correo de restablecimiento.",
+                                "error"
+                            );
 
-    const afectados =
-        alumnos.filter(
-            a =>
-                a.grupo === nombreAnterior
-        );
+                        }
 
-    if (
-        afectados.length === 0
-    ) {
-
-        accionMasivaGrupo.innerHTML =
-            "";
-
-        return;
-
-    }
-
-    accionMasivaGrupo.innerHTML = `
-        <div class="mensaje ok" style="display:block;">
-            ${afectados.length} alumno(s) tienen asignado
-            "${escaparHtml(nombreAnterior)}".
-
-            <button
-                type="button"
-                id="btnActualizarAlumnosGrupo"
-                class="btn-principal boton-fila"
-                style="margin-left:10px;"
-            >
-                Actualizarlos a "${escaparHtml(nombreNuevo)}"
-            </button>
-        </div>
-    `;
-
-    document
-        .getElementById(
-            "btnActualizarAlumnosGrupo"
-        )
-        .addEventListener(
-            "click",
-            async function() {
-
-                this.disabled =
-                    true;
-
-                this.textContent =
-                    "Actualizando...";
-
-                try {
-
-                    for (
-                        const alumno
-                        of afectados
-                    ) {
-
-                        await updateDoc(
-                            doc(
-                                db,
-                                "alumnos",
-                                alumno.id
-                            ),
-                            {
-                                grupo: nombreNuevo
-                            }
-                        );
+                        this.disabled =
+                            false;
 
                     }
-
-                    await cargarAlumnos();
-
-                    await cargarCobranzaPeriodo();
-
-                    accionMasivaGrupo.innerHTML = `
-                        <div class="mensaje ok" style="display:block;">
-                            Listo, ${afectados.length} alumno(s) actualizados.
-                        </div>
-                    `;
-
-                } catch (error) {
-
-                    console.error(
-                        error
-                    );
-
-                    accionMasivaGrupo.innerHTML = `
-                        <div class="mensaje error" style="display:block;">
-                            No se pudo actualizar a todos los alumnos.
-                        </div>
-                    `;
-
-                }
+                );
 
             }
         );
@@ -353,186 +317,100 @@ function ofrecerActualizacionMasivaGrupo(
 
 
 /*
- * A diferencia de las tarifas, el valor que
- * guardamos en el alumno sigue siendo el
- * NOMBRE del grupo (campo "grupo", como
- * siempre), no un id. El catálogo solo
- * evita que ese texto se escriba libre.
+ * Crea la cuenta de acceso (correo/contraseña)
+ * sin cerrar la sesión del administrador actual:
+ * usa una segunda instancia de Firebase, solo
+ * para ese registro, y la destruye enseguida.
  */
 
-function poblarSelectsGrupos() {
-
-    const selects = [
-        selectGrupoAlta,
-        selectGrupoEdicion,
-        asistenciaGrupoSelect
-    ];
-
-    selects.forEach(
-        select => {
-
-            if (!select) {
-                return;
-            }
-
-            const valorActual =
-                select.value;
-
-            select.innerHTML = `
-                <option value="">
-                    Seleccionar grupo
-                </option>
-            `;
-
-            grupos.forEach(
-                grupo => {
-
-                    const option =
-                        document.createElement(
-                            "option"
-                        );
-
-                    option.value =
-                        grupo.nombre;
-
-                    option.textContent =
-                        grupo.nombre;
-
-                    select.appendChild(
-                        option
-                    );
-
-                }
-            );
-
-            if (
-                valorActual &&
-                grupos.some(
-                    g =>
-                        g.nombre ===
-                        valorActual
-                )
-            ) {
-
-                select.value =
-                    valorActual;
-
-            }
-
-        }
-    );
-
-}
-
-
-/*
- * Fija el valor del select de grupo en el
- * formulario de edición. Si el alumno tiene
- * un valor de "grupo" que ya no existe en el
- * catálogo (texto viejo o grupo eliminado),
- * lo agregamos como opción temporal para no
- * perderlo ni sobrescribirlo sin querer.
- */
-
-function fijarGrupoEdicion(
-    alumno
+async function crearCuentaSinCerrarSesion(
+    correo,
+    password
 ) {
 
-    const valor =
-        alumno.grupo || "";
+    const configuracion =
+        auth.app.options;
 
+    const nombreAppTemporal =
+        `usuario-temporal-${Date.now()}`;
 
-    const opcionVieja =
-        selectGrupoEdicion
-            .querySelector(
-                'option[data-legacy="1"]'
-            );
-
-    if (opcionVieja) {
-
-        opcionVieja.remove();
-
-    }
-
-
-    const existeEnCatalogo =
-        Array.from(
-            selectGrupoEdicion.options
-        ).some(
-            opcion =>
-                opcion.value === valor
+    const appTemporal =
+        initializeApp(
+            configuracion,
+            nombreAppTemporal
         );
 
+    const authTemporal =
+        getAuth(
+            appTemporal
+        );
 
-    if (
-        valor &&
-        !existeEnCatalogo
-    ) {
+    try {
 
-        const opcion =
-            document.createElement(
-                "option"
+        const credencial =
+            await createUserWithEmailAndPassword(
+                authTemporal,
+                correo,
+                password
             );
 
-        opcion.value =
-            valor;
+        const uid =
+            credencial.user.uid;
 
-        opcion.textContent =
-            `${valor} (no está en el catálogo)`;
+        await signOut(
+            authTemporal
+        );
 
-        opcion.dataset.legacy =
-            "1";
+        return uid;
 
-        selectGrupoEdicion.appendChild(
-            opcion
+    } finally {
+
+        await deleteApp(
+            appTemporal
         );
 
     }
-
-
-    selectGrupoEdicion.value =
-        valor;
 
 }
 
 
-function cerrarPanelGrupo() {
+function cerrarPanelUsuario() {
 
-    panelAltaGrupo.classList.remove(
+    panelAltaUsuario.classList.remove(
         "abierto"
     );
 
-    btnToggleGrupo.classList.remove(
+    btnToggleUsuario.classList.remove(
         "abierto"
     );
 
-    formGrupo.reset();
+    formUsuario.reset();
 
     limpiarMensaje(
-        mensajeGrupo
+        mensajeUsuario
     );
 
-    accionMasivaGrupo.innerHTML =
-        "";
-
-    grupoEditandoId =
+    usuarioEditandoId =
         null;
 
-    grupoEditandoNombreAnterior =
-        "";
+    btnGuardarUsuario.textContent =
+        "Crear usuario";
 
-    btnGuardarGrupo.textContent =
-        "Agregar grupo";
+    campoUsuarioPassword.style.display =
+        "flex";
+
+    usuarioCorreoInput.disabled =
+        false;
 
 }
 
 
-btnToggleGrupo.addEventListener(
+btnToggleUsuario.addEventListener(
     "click",
     function() {
 
         const abierto =
-            panelAltaGrupo
+            panelAltaUsuario
                 .classList
                 .contains(
                     "abierto"
@@ -540,17 +418,17 @@ btnToggleGrupo.addEventListener(
 
         if (abierto) {
 
-            cerrarPanelGrupo();
+            cerrarPanelUsuario();
 
         } else {
 
-            panelAltaGrupo
+            panelAltaUsuario
                 .classList
                 .add(
                     "abierto"
                 );
 
-            btnToggleGrupo
+            btnToggleUsuario
                 .classList
                 .add(
                     "abierto"
@@ -562,90 +440,144 @@ btnToggleGrupo.addEventListener(
 );
 
 
-btnCancelarGrupo.addEventListener(
+btnCancelarUsuario.addEventListener(
     "click",
-    cerrarPanelGrupo
+    cerrarPanelUsuario
 );
 
 
-formGrupo.addEventListener(
+function iniciarEdicionUsuario(
+    usuario
+) {
+
+    usuarioEditandoId =
+        usuario.id;
+
+    document
+        .getElementById(
+            "usuarioNombre"
+        )
+        .value =
+        usuario.nombre || "";
+
+    document
+        .getElementById(
+            "usuarioApellidos"
+        )
+        .value =
+        usuario.Apellidos ||
+        usuario.apellidos ||
+        "";
+
+    usuarioCorreoInput.value =
+        usuario.correo || "";
+
+    usuarioCorreoInput.disabled =
+        true;
+
+    document
+        .getElementById(
+            "usuarioRol"
+        )
+        .value =
+        usuario.rol || "instructor";
+
+    document
+        .getElementById(
+            "usuarioActivoSelect"
+        )
+        .value =
+        usuario.activo === true
+            ? "true"
+            : "false";
+
+    /*
+     * Al editar no se puede tocar la
+     * contraseña desde aquí (usa el botón
+     * de restablecer contraseña).
+     */
+
+    campoUsuarioPassword.style.display =
+        "none";
+
+    usuarioPasswordInput.value =
+        "";
+
+    btnGuardarUsuario.textContent =
+        "Guardar cambios";
+
+    limpiarMensaje(
+        mensajeUsuario
+    );
+
+    panelAltaUsuario.classList.add(
+        "abierto"
+    );
+
+    btnToggleUsuario.classList.add(
+        "abierto"
+    );
+
+    panelAltaUsuario.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+
+}
+
+
+formUsuario.addEventListener(
     "submit",
     async function(e) {
 
         e.preventDefault();
 
         limpiarMensaje(
-            mensajeGrupo
+            mensajeUsuario
         );
 
         const nombre =
             document
                 .getElementById(
-                    "grupoNombre"
+                    "usuarioNombre"
                 )
                 .value
                 .trim();
 
-        const disciplina =
+        const apellidos =
             document
                 .getElementById(
-                    "grupoDisciplina"
+                    "usuarioApellidos"
+                )
+                .value
+                .trim();
+
+        const correo =
+            usuarioCorreoInput.value
+                .trim();
+
+        const rol =
+            document
+                .getElementById(
+                    "usuarioRol"
                 )
                 .value;
 
-        const diasClase =
-            obtenerDiasClaseSeleccionados();
+        const activo =
+            document
+                .getElementById(
+                    "usuarioActivoSelect"
+                )
+                .value === "true";
 
         if (
-            !nombre
+            !nombre ||
+            !correo
         ) {
 
             mostrarMensaje(
-                mensajeGrupo,
-                "Escribe el nombre del grupo.",
-                "error"
-            );
-
-            return;
-
-        }
-
-        if (!disciplina) {
-            mostrarMensaje(
-                mensajeGrupo,
-                "Selecciona la disciplina del grupo.",
-                "error"
-            );
-            return;
-        }
-
-        if (diasClase.length === 0) {
-            mostrarMensaje(
-                mensajeGrupo,
-                "Selecciona al menos un día de clase.",
-                "error"
-            );
-            return;
-        }
-
-        const yaExiste =
-            grupos.some(
-                grupo =>
-                    String(
-                        grupo.nombre || ""
-                    ).toLowerCase() ===
-                    nombre.toLowerCase() &&
-                    grupo.id !==
-                    grupoEditandoId
-            );
-
-        if (
-            yaExiste
-        ) {
-
-            mostrarMensaje(
-                mensajeGrupo,
-                "Ya existe un grupo con ese nombre.",
+                mensajeUsuario,
+                "Completa nombre y correo.",
                 "error"
             );
 
@@ -655,58 +587,41 @@ formGrupo.addEventListener(
 
 
         /* =================================================
-           MODO EDICIÓN
+           MODO EDICIÓN (no toca correo ni contraseña)
         ================================================= */
 
         if (
-            grupoEditandoId
+            usuarioEditandoId
         ) {
-
-            const nombreAnterior =
-                grupoEditandoNombreAnterior;
 
             try {
 
                 await updateDoc(
                     doc(
                         db,
-                        "grupos",
-                        grupoEditandoId
+                        "usuarios",
+                        usuarioEditandoId
                     ),
                     {
                         nombre,
-                        disciplina,
-                        diasClase
+                        Apellidos: apellidos,
+                        rol,
+                        activo
                     }
                 );
 
                 mostrarMensaje(
-                    mensajeGrupo,
-                    "Grupo actualizado correctamente.",
+                    mensajeUsuario,
+                    "Usuario actualizado correctamente.",
                     "ok"
                 );
 
-                await cargarGrupos();
+                await cargarUsuarios();
 
-                if (
-                    nombreAnterior !== nombre
-                ) {
-
-                    ofrecerActualizacionMasivaGrupo(
-                        nombreAnterior,
-                        nombre
-                    );
-
-                }
-
-                grupoEditandoId =
-                    null;
-
-                grupoEditandoNombreAnterior =
-                    "";
-
-                btnGuardarGrupo.textContent =
-                    "Agregar grupo";
+                setTimeout(
+                    cerrarPanelUsuario,
+                    800
+                );
 
             } catch (error) {
 
@@ -715,8 +630,8 @@ formGrupo.addEventListener(
                 );
 
                 mostrarMensaje(
-                    mensajeGrupo,
-                    "No fue posible actualizar el grupo.",
+                    mensajeUsuario,
+                    "No fue posible actualizar el usuario.",
                     "error"
                 );
 
@@ -728,53 +643,123 @@ formGrupo.addEventListener(
 
 
         /* =================================================
-           MODO NUEVO REGISTRO
+           MODO NUEVO USUARIO
         ================================================= */
+
+        const password =
+            usuarioPasswordInput.value;
+
+        if (
+            !password ||
+            password.length < 6
+        ) {
+
+            mostrarMensaje(
+                mensajeUsuario,
+                "La contraseña debe tener al menos 6 caracteres.",
+                "error"
+            );
+
+            return;
+
+        }
+
+        btnGuardarUsuario.disabled =
+            true;
+
+        btnGuardarUsuario.textContent =
+            "Creando...";
 
         try {
 
-            await addDoc(
-                collection(
+            const uid =
+                await crearCuentaSinCerrarSesion(
+                    correo,
+                    password
+                );
+
+            await setDoc(
+                doc(
                     db,
-                    "grupos"
+                    "usuarios",
+                    uid
                 ),
                 {
                     nombre,
-                    disciplina,
-                    diasClase
+                    Apellidos: apellidos,
+                    correo,
+                    rol,
+                    activo
                 }
             );
 
-            formGrupo.reset();
+            formUsuario.reset();
 
             mostrarMensaje(
-                mensajeGrupo,
-                "Grupo agregado correctamente.",
+                mensajeUsuario,
+                "Usuario creado correctamente.",
                 "ok"
             );
 
-            await cargarGrupos();
+            await cargarUsuarios();
 
             setTimeout(
-                cerrarPanelGrupo,
-                800
+                cerrarPanelUsuario,
+                900
             );
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "Error creando usuario:",
+                error
+            );
+
+            let texto =
+                "No fue posible crear el usuario.";
+
+            if (
+                error.code === "auth/email-already-in-use"
+            ) {
+
+                texto =
+                    "Ese correo ya tiene una cuenta.";
+
+            } else if (
+                error.code === "auth/invalid-email"
+            ) {
+
+                texto =
+                    "El correo no es válido.";
+
+            } else if (
+                error.code === "auth/weak-password"
+            ) {
+
+                texto =
+                    "La contraseña es demasiado débil.";
+
+            }
 
             mostrarMensaje(
-                mensajeGrupo,
-                "No fue posible guardar el grupo.",
+                mensajeUsuario,
+                texto,
                 "error"
             );
 
         }
 
+        btnGuardarUsuario.disabled =
+            false;
+
+        if (
+            !usuarioEditandoId
+        ) {
+
+            btnGuardarUsuario.textContent =
+                "Crear usuario";
+
+        }
+
     }
 );
-
-
-
-
