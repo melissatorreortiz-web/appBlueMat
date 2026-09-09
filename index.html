@@ -1,0 +1,3500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Blue Mat Academy | Administración</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <!--
+        SDK de EmailJS, para enviar el recibo de pago
+        por correo sin necesitar un servidor propio.
+        Se usa como script normal (no módulo) y se
+        llama desde el módulo principal vía window.emailjs.
+    -->
+    <script
+        type="text/javascript"
+        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
+    ></script>
+
+</head>
+
+<body>
+
+
+<!-- =====================================================
+     LOGIN
+===================================================== -->
+
+<section id="loginSection">
+
+    <div class="tarjeta">
+
+        <div class="login-logo">
+            <h1>🥋 Blue Mat Academy</h1>
+            <p>Administración</p>
+        </div>
+
+        <form id="formLogin" class="login-form">
+
+            <div class="campo">
+                <label for="correoLogin">Correo</label>
+
+                <input
+                    type="email"
+                    id="correoLogin"
+                    required
+                    autocomplete="email"
+                >
+            </div>
+
+            <div class="campo">
+                <label for="passwordLogin">
+                    Contraseña
+                </label>
+
+                <input
+                    type="password"
+                    id="passwordLogin"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <button
+                type="submit"
+                class="btn-principal"
+            >
+                Iniciar sesión
+            </button>
+
+            <span
+                id="linkOlvidoPassword"
+                class="link"
+            >
+                ¿Olvidaste tu contraseña?
+            </span>
+
+            <div
+                id="mensajeLogin"
+                class="mensaje"
+            ></div>
+
+        </form>
+
+    </div>
+
+</section>
+
+
+
+<!-- =====================================================
+     APLICACIÓN
+===================================================== -->
+
+<div
+    id="appPrincipal"
+    style="display:none;"
+>
+
+<div class="app-shell">
+
+    <nav class="sidebar">
+
+        <div class="marca">
+            <span class="marca-icono">🥋</span>
+            <span class="marca-nombre">
+                Blue Mat Academy
+                <small>Administración</small>
+            </span>
+        </div>
+
+        <div class="nav-lateral">
+
+            <button
+                type="button"
+                id="navBtnAlumnos"
+            >
+                👥 Alumnos
+            </button>
+
+            <button
+                type="button"
+                id="navBtnCobranza"
+            >
+                💰 Cobranza
+            </button>
+
+            <button
+                type="button"
+                id="navBtnAsistencia"
+            >
+                📋 Asistencia
+            </button>
+
+            <button
+                type="button"
+                id="btnToggleAdministracion"
+            >
+                ⚙️ Administración
+            </button>
+
+        </div>
+
+        <div class="sidebar-pie">
+
+            <div class="nombre-usuario" id="correoUsuario"></div>
+            <div class="rol-usuario" id="rolUsuarioTexto"></div>
+
+            <button
+                id="btnCerrarSesion"
+                class="btn-secundario"
+                style="width:100%;"
+            >
+                Cerrar sesión
+            </button>
+
+        </div>
+
+    </nav>
+
+
+    <div class="contenido-principal">
+
+
+
+    <main class="contenido-interior">
+
+
+        <div id="vistaAlumnos" class="vista">
+
+        <!-- =================================================
+             ALUMNOS
+        ================================================== -->
+
+        <section class="tarjeta">
+
+            <div class="cabecera-seccion">
+
+                <div>
+
+                    <h2>👥 Alumnos</h2>
+
+                    <p style="color:#6b7280;">
+                        Consulta y administra los alumnos
+                        de la academia.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="btnToggleAlta"
+                    class="btn-principal boton-desplegable"
+                >
+
+                    <span>
+                        ➕ Añadir alumno
+                    </span>
+
+                    <span class="flecha">
+                        ▼
+                    </span>
+
+                </button>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 ALTA ALUMNO
+            ================================================== -->
+
+            <div
+                id="panelAltaAlumno"
+                class="panel-plegable"
+            >
+
+                <h3>
+                    Nuevo alumno
+                </h3>
+
+                <form id="formAlumno">
+
+                    <div class="grid">
+
+                        <div class="campo">
+
+                            <label for="nombre">
+                                Nombre *
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nombre"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="apellidoPaterno">
+                                Apellido paterno *
+                            </label>
+
+                            <input
+                                type="text"
+                                id="apellidoPaterno"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="apellidoMaterno">
+                                Apellido materno
+                            </label>
+
+                            <input
+                                type="text"
+                                id="apellidoMaterno"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="fechaNacimiento">
+                                Fecha de nacimiento
+                            </label>
+
+                            <input
+                                type="date"
+                                id="fechaNacimiento"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="correo">
+                                Correo
+                            </label>
+
+                            <input
+                                type="email"
+                                id="correo"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="telefono">
+                                Teléfono
+                            </label>
+
+                            <input
+                                type="tel"
+                                id="telefono"
+                            >
+
+                        </div>
+
+
+                        <div class="campo campo-completo">
+
+                            <label for="direccion">
+                                Dirección
+                            </label>
+
+                            <input
+                                type="text"
+                                id="direccion"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="estadoCivil">
+                                Estado civil
+                            </label>
+
+                            <select id="estadoCivil">
+
+                                <option value="">
+                                    Seleccionar
+                                </option>
+
+                                <option value="Soltero(a)">
+                                    Soltero(a)
+                                </option>
+
+                                <option value="Casado(a)">
+                                    Casado(a)
+                                </option>
+
+                                <option value="Unión libre">
+                                    Unión libre
+                                </option>
+
+                                <option value="Divorciado(a)">
+                                    Divorciado(a)
+                                </option>
+
+                                <option value="Viudo(a)">
+                                    Viudo(a)
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="fechaIngreso">
+                                Fecha de ingreso
+                            </label>
+
+                            <input
+                                type="date"
+                                id="fechaIngreso"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="fechaBaja">
+                                Fecha de baja
+                            </label>
+
+                            <input
+                                type="date"
+                                id="fechaBaja"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="activo">
+                                Estado
+                            </label>
+
+                            <select id="activo">
+
+                                <option value="true">
+                                    Activo
+                                </option>
+
+                                <option value="false">
+                                    Inactivo
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="grupo">
+                                Grupo
+                            </label>
+
+                            <select id="grupo">
+
+                                <option value="">
+                                    Seleccionar grupo
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="grado">
+                                Grado
+                            </label>
+
+                            <input
+                                type="text"
+                                id="grado"
+                                placeholder="Ej. 8º Kup"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="nfcUid">
+                                NFC UID
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nfcUid"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="foto">
+                                Fotografía
+                            </label>
+
+                            <input
+                                type="file"
+                                id="foto"
+                                accept="image/*"
+                            >
+
+                            <img
+                                id="previewFotoNueva"
+                                class="preview-foto"
+                                alt="Vista previa"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- DATOS ECONÓMICOS -->
+
+                    <div
+                        style="
+                            margin-top:30px;
+                            padding-top:20px;
+                            border-top:1px solid #e5e7eb;
+                        "
+                    >
+
+                        <h3>
+                            💰 Datos económicos
+                        </h3>
+
+                        <div class="grid-3">
+
+                            <div class="campo">
+
+                                <label for="tarifaId">
+                                    Tarifa *
+                                </label>
+
+                                <select
+                                    id="tarifaId"
+                                    required
+                                >
+
+                                    <option value="">
+                                        Seleccionar tarifa
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="tipoTarifa">
+                                    Tipo de tarifa
+                                </label>
+
+                                <select id="tipoTarifa">
+
+                                    <option value="normal">
+                                        Normal
+                                    </option>
+
+                                    <option value="beca">
+                                        Beca
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div
+                                class="campo"
+                                id="campoTipoDescuentoBeca"
+                                style="display:none;"
+                            >
+
+                                <label for="tipoDescuentoBeca">
+                                    Tipo de descuento
+                                </label>
+
+                                <select id="tipoDescuentoBeca">
+
+                                    <option value="porcentaje">
+                                        Porcentaje (%)
+                                    </option>
+
+                                    <option value="monto">
+                                        Monto fijo ($)
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div
+                                class="campo"
+                                id="campoPorcentajeBeca"
+                                style="display:none;"
+                            >
+
+                                <label for="porcentajeBeca">
+                                    Porcentaje de descuento
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="porcentajeBeca"
+                                    min="0"
+                                    max="100"
+                                    step="1"
+                                    value="0"
+                                >
+
+                            </div>
+
+
+                            <div
+                                class="campo"
+                                id="campoMontoDescuentoBeca"
+                                style="display:none;"
+                            >
+
+                                <label for="montoDescuentoBeca">
+                                    Monto a descontar
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="montoDescuentoBeca"
+                                    min="0"
+                                    step="0.01"
+                                    value="0"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                margin-top:15px;
+                                background:#f9fafb;
+                                padding:15px;
+                                border-radius:8px;
+                            "
+                        >
+
+                            <strong>
+                                Cuota mensual:
+                            </strong>
+
+                            <span
+                                id="cuotaMensualVista"
+                                style="
+                                    font-size:20px;
+                                    margin-left:10px;
+                                "
+                            >
+                                $0.00
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="acciones">
+
+                        <button
+                            type="submit"
+                            class="btn-principal"
+                        >
+                            Guardar alumno
+                        </button>
+
+                        <button
+                            type="button"
+                            id="btnCancelarAlta"
+                            class="btn-secundario"
+                        >
+                            Cancelar
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        id="mensaje"
+                        class="mensaje"
+                    ></div>
+
+                </form>
+
+            </div>
+
+
+
+            <!-- BUSCADOR -->
+
+            <div
+                class="grid"
+                style="margin-top:25px;"
+            >
+
+                <div class="campo">
+
+                    <label for="buscador">
+                        Buscar alumno
+                    </label>
+
+                    <input
+                        type="search"
+                        id="buscador"
+                        placeholder="Nombre, apellido, teléfono..."
+                    >
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label for="filtroEstado">
+                        Estado
+                    </label>
+
+                    <select id="filtroEstado">
+
+                        <option value="todos">
+                            Todos
+                        </option>
+
+                        <option value="activos">
+                            Activos
+                        </option>
+
+                        <option value="inactivos">
+                            Inactivos
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="acciones"
+                style="margin-top:15px;"
+            >
+
+                <button
+                    type="button"
+                    id="btnMostrarTodosAlumnos"
+                    class="btn-secundario"
+                >
+                    👁️ Mostrar todos los alumnos
+                </button>
+
+                <button
+                    type="button"
+                    id="btnEliminarSeleccionados"
+                    class="btn-peligro"
+                    style="display:none;"
+                >
+                    🗑️ Eliminar seleccionados
+                </button>
+
+            </div>
+
+
+
+            <div class="tabla-contenedor">
+
+                <table>
+
+                    <thead>
+
+                        <tr id="cabeceraListaAlumnos">
+
+                            <th>
+                                Nombre
+                            </th>
+
+                            <th>
+                                Grupo
+                            </th>
+
+                            <th>
+                                Grado
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Acción
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="listaAlumnos"></tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        </div>
+        <!-- fin #vistaAlumnos -->
+
+
+
+        <div id="vistaCobranza" class="vista">
+
+        <!-- =================================================
+             COBRANZA MENSUAL
+        ================================================== -->
+
+        <section
+            id="seccionCobranzaMensual"
+            class="tarjeta"
+        >
+
+            <div class="cabecera-seccion">
+
+                <div>
+
+                    <h2>💰 Cobranza mensual</h2>
+
+                    <p style="color:#6b7280;">
+                        Revisa quién pagó, quién no y quién
+                        todavía no tiene registro para el mes
+                        seleccionado.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="filtros-cobranza">
+
+                <div class="campo">
+
+                    <label for="cobranzaPeriodo">
+                        Mes a cobrar
+                    </label>
+
+                    <input
+                        type="month"
+                        id="cobranzaPeriodo"
+                    >
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label for="cobranzaFiltroEstadoAlumno">
+                        Alumnos
+                    </label>
+
+                    <select id="cobranzaFiltroEstadoAlumno">
+
+                        <option value="activos">
+                            Activos
+                        </option>
+
+                        <option value="inactivos">
+                            Inactivos
+                        </option>
+
+                        <option value="todos">
+                            Todos
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label for="cobranzaFiltroPago">
+                        Estado de pago
+                    </label>
+
+                    <select id="cobranzaFiltroPago">
+
+                        <option value="todos">
+                            Todos
+                        </option>
+
+                        <option value="pagado">
+                            🟢 Pagaron
+                        </option>
+
+                        <option value="no_pagado">
+                            🔴 No pagaron
+                        </option>
+
+                        <option value="sin_registro">
+                            ⚪ Sin registro
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="acciones">
+
+                <button
+                    type="button"
+                    id="btnCargarCobranza"
+                    class="btn-principal"
+                >
+                    🔄 Cargar cobranza de este mes
+                </button>
+
+            </div>
+
+
+            <div class="resumen-cobranza">
+
+                <div class="dato activos">
+                    <strong>Alumnos considerados</strong>
+                    <span id="cobranzaTotalConsiderados">0</span>
+                </div>
+
+                <div class="dato pagaron">
+                    <strong>🟢 Pagaron</strong>
+                    <span id="cobranzaTotalPagaron">0</span>
+                </div>
+
+                <div class="dato no-pagaron">
+                    <strong>🔴 No pagaron</strong>
+                    <span id="cobranzaTotalNoPagaron">0</span>
+                </div>
+
+                <div class="dato pendientes">
+                    <strong>⚪ Sin registro</strong>
+                    <span id="cobranzaTotalSinRegistro">0</span>
+                </div>
+
+            </div>
+
+
+            <div class="tabla-contenedor">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Nombre
+                            </th>
+
+                            <th>
+                                Grupo
+                            </th>
+
+                            <th>
+                                Cuota mensual
+                            </th>
+
+                            <th>
+                                Estado de pago
+                            </th>
+
+                            <th>
+                                Monto pagado
+                            </th>
+
+                            <th>
+                                Fecha de pago
+                            </th>
+
+                            <th>
+                                Método
+                            </th>
+
+                            <th>
+                                Acción
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="listaCobranza">
+                        <tr>
+                            <td colspan="8">
+                                Pulsa "🔄 Cargar cobranza de este mes"
+                                para ver el estado de pagos.
+                            </td>
+                        </tr>
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        </div>
+        <!-- fin #vistaCobranza -->
+
+
+
+        <!-- =================================================
+             ASISTENCIA POR GRUPO
+        ================================================== -->
+
+        <div
+            id="vistaAsistencia"
+            class="vista"
+        >
+
+        <section class="tarjeta">
+
+            <div class="cabecera-seccion">
+
+                <div>
+
+                    <h2>
+                        📋 Asistencia por grupo
+                    </h2>
+
+                    <p style="color:#6b7280;">
+                        Registra la asistencia de todo un grupo
+                        de forma rápida.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- FILTROS -->
+
+            <div class="grid">
+
+                <div class="campo">
+
+                    <label for="asistenciaGrupo">
+
+                        Grupo
+
+                    </label>
+
+                    <select
+                        id="asistenciaGrupo"
+                    >
+
+                        <option value="">
+
+                            Seleccionar grupo
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label for="asistenciaFecha">
+
+                        Fecha
+
+                    </label>
+
+                    <input
+                        type="date"
+                        id="asistenciaFecha"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- ACCIONES -->
+
+            <div
+                class="acciones"
+                style="margin-top:20px;"
+            >
+
+                <button
+                    type="button"
+                    id="btnCargarAsistenciaGrupo"
+                    class="btn-principal"
+                >
+
+                    🔄 Cargar grupo
+
+                </button>
+
+
+                <button
+                    type="button"
+                    id="btnMarcarTodosPresentes"
+                    class="btn-secundario"
+                >
+
+                    ☑️ Marcar todos como presentes
+
+                </button>
+
+            </div>
+
+
+            <!-- FILTROS DE ASISTENCIA -->
+
+            <div
+                class="acciones"
+                style="margin-top:15px;"
+            >
+
+                <button
+                    type="button"
+                    class="btn-secundario filtro-asistencia-grupo activo"
+                    data-filtro="todos"
+                >
+
+                    Todos
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn-secundario filtro-asistencia-grupo"
+                    data-filtro="presentes"
+                >
+
+                    🟢 Presentes
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn-secundario filtro-asistencia-grupo"
+                    data-filtro="ausentes"
+                >
+
+                    🔴 Ausentes
+
+                </button>
+
+            </div>
+
+
+            <!-- RESUMEN -->
+
+            <div
+                class="resumen-cobranza"
+                style="margin-top:20px;"
+            >
+
+                <div class="dato activos">
+
+                    <strong>
+                        Alumnos
+                    </strong>
+
+                    <span id="asistenciaTotalAlumnos">
+                        0
+                    </span>
+
+                </div>
+
+
+                <div class="dato pagaron">
+
+                    <strong>
+                        🟢 Presentes
+                    </strong>
+
+                    <span id="asistenciaTotalPresentes">
+                        0
+                    </span>
+
+                </div>
+
+
+                <div class="dato no-pagaron">
+
+                    <strong>
+                        🔴 Ausentes
+                    </strong>
+
+                    <span id="asistenciaTotalAusentes">
+                        0
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- LISTA -->
+
+            <div
+                id="listaAsistenciaGrupo"
+                style="margin-top:20px;"
+            >
+
+                <div
+                    style="
+                        padding:20px;
+                        text-align:center;
+                        color:#6b7280;
+                    "
+                >
+
+                    Selecciona un grupo y una fecha.
+
+                </div>
+
+            </div>
+
+
+            <!-- GUARDAR -->
+
+            <div
+                class="acciones"
+                style="margin-top:20px;"
+            >
+
+                <button
+                    type="button"
+                    id="btnGuardarAsistenciaGrupo"
+                    class="btn-principal"
+                >
+
+                    💾 Guardar asistencia
+
+                </button>
+
+            </div>
+
+
+            <div
+                id="mensajeAsistenciaGrupo"
+                class="mensaje"
+            ></div>
+
+        </section>
+
+        </div>
+        <!-- fin #vistaAsistencia -->
+
+
+
+        <!-- =================================================
+             ADMINISTRACIÓN (GRUPOS / TARIFAS / IMPORTAR)
+        ================================================== -->
+
+        <div
+            id="seccionAdministracion"
+            style="display:none;"
+        >
+
+        <!-- =================================================
+             GRUPOS (CATÁLOGO)
+        ================================================== -->
+
+        <section class="tarjeta">
+
+            <div class="cabecera-seccion">
+
+                <div>
+
+                    <h2>
+                        🏷️ Grupos
+                    </h2>
+
+                    <p style="color:#6b7280;">
+                        Catálogo de grupos disponibles para asignar
+                        a los alumnos.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="btnToggleGrupo"
+                    class="btn-principal boton-desplegable"
+                >
+
+                    <span>
+                        ➕ Añadir grupo
+                    </span>
+
+                    <span class="flecha">
+                        ▼
+                    </span>
+
+                </button>
+
+            </div>
+
+
+            <div
+                id="panelAltaGrupo"
+                class="panel-plegable"
+            >
+
+            <form
+                id="formGrupo"
+                class="tarifa-form"
+            >
+
+                <div class="grid">
+
+                    <div class="campo campo-completo">
+
+                        <label for="grupoNombre">
+                            Nombre del grupo
+                        </label>
+
+                        <input
+                            type="text"
+                            id="grupoNombre"
+                            placeholder="Ej. Adultos principiantes"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="campo">
+
+                        <label for="grupoDisciplina">
+                            Disciplina
+                        </label>
+
+                        <select id="grupoDisciplina" required>
+                            <option value="">
+                                Seleccionar disciplina
+                            </option>
+                            <option value="taekwondo">
+                                Taekwondo
+                            </option>
+                            <option value="combatives">
+                                Combatives
+                            </option>
+                        </select>
+
+                    </div>
+
+                    <div class="campo campo-completo">
+
+                        <label>
+                            Días de clase
+                        </label>
+
+                        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+
+                            <label style="display:flex;align-items:center;gap:5px;">
+                                <input type="checkbox" name="grupoDiaClase" value="1">
+                                Lunes
+                            </label>
+
+                            <label style="display:flex;align-items:center;gap:5px;">
+                                <input type="checkbox" name="grupoDiaClase" value="2">
+                                Martes
+                            </label>
+
+                            <label style="display:flex;align-items:center;gap:5px;">
+                                <input type="checkbox" name="grupoDiaClase" value="3">
+                                Miércoles
+                            </label>
+
+                            <label style="display:flex;align-items:center;gap:5px;">
+                                <input type="checkbox" name="grupoDiaClase" value="4">
+                                Jueves
+                            </label>
+
+                            <label style="display:flex;align-items:center;gap:5px;">
+                                <input type="checkbox" name="grupoDiaClase" value="5">
+                                Viernes
+                            </label>
+
+                            <label style="display:flex;align-items:center;gap:5px;">
+                                <input type="checkbox" name="grupoDiaClase" value="6">
+                                Sábado
+                            </label>
+
+                            <label style="display:flex;align-items:center;gap:5px;">
+                                <input type="checkbox" name="grupoDiaClase" value="0">
+                                Domingo
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="acciones">
+
+                    <button
+                        type="submit"
+                        id="btnGuardarGrupo"
+                        class="btn-principal"
+                    >
+                        Agregar grupo
+                    </button>
+
+                    <button
+                        type="button"
+                        id="btnCancelarGrupo"
+                        class="btn-secundario"
+                    >
+                        Cancelar
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="mensajeGrupo"
+                    class="mensaje"
+                ></div>
+
+                <div
+                    id="accionMasivaGrupo"
+                    style="margin-top:10px;"
+                ></div>
+
+            </form>
+
+            </div>
+
+
+            <div class="tabla-contenedor">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Grupo
+                            </th>
+
+                            <th>
+                                Acción
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="listaGrupos"></tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             TARIFAS
+        ================================================== -->
+
+        <section class="tarjeta">
+
+            <div class="cabecera-seccion">
+
+                <div>
+
+                    <h2>
+                        💵 Tarifas
+                    </h2>
+
+                    <p style="color:#6b7280;">
+                        Las tarifas sirven como referencia para calcular
+                        la mensualidad de los alumnos.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="btnToggleTarifa"
+                    class="btn-principal boton-desplegable"
+                >
+
+                    <span>
+                        ➕ Añadir tarifa
+                    </span>
+
+                    <span class="flecha">
+                        ▼
+                    </span>
+
+                </button>
+
+            </div>
+
+
+            <div
+                id="panelAltaTarifa"
+                class="panel-plegable"
+            >
+
+            <form
+                id="formTarifa"
+                class="tarifa-form"
+            >
+
+                <div class="grid">
+
+                    <div class="campo">
+
+                        <label for="tarifaNombre">
+                            Nombre de la tarifa
+                        </label>
+
+                        <input
+                            type="text"
+                            id="tarifaNombre"
+                            placeholder="Ej. Adultos principiantes"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="campo">
+
+                        <label for="tarifaCuotaBase">
+                            Cuota base
+                        </label>
+
+                        <input
+                            type="number"
+                            id="tarifaCuotaBase"
+                            min="0"
+                            step="0.01"
+                            required
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="acciones">
+
+                    <button
+                        type="submit"
+                        class="btn-principal"
+                    >
+                        Agregar tarifa
+                    </button>
+
+                    <button
+                        type="button"
+                        id="btnCancelarTarifa"
+                        class="btn-secundario"
+                    >
+                        Cancelar
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="mensajeTarifa"
+                    class="mensaje"
+                ></div>
+
+            </form>
+
+            </div>
+
+
+            <div class="tabla-contenedor">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Tarifa
+                            </th>
+
+                            <th>
+                                Cuota base
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="listaTarifas"></tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             IMPORTAR ALUMNOS DESDE SHEETS
+        ================================================== -->
+
+        <section class="tarjeta">
+
+            <div class="cabecera-seccion">
+
+                <div>
+
+                    <h2>
+                        📥 Importar alumnos desde Sheets
+                    </h2>
+
+                    <p style="color:#6b7280;">
+                        Pega alumnos copiados de tu Google Sheet (con
+                        encabezados) y, si quieres, sus pagos de este mes.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="btnToggleImportar"
+                    class="btn-principal boton-desplegable"
+                >
+
+                    <span>
+                        📥 Importar desde Sheets
+                    </span>
+
+                    <span class="flecha">
+                        ▼
+                    </span>
+
+                </button>
+
+            </div>
+
+
+            <div
+                id="panelImportar"
+                class="panel-plegable"
+            >
+
+                <!-- PASO 1 -->
+
+                <div id="importPaso1">
+
+                    <h3>
+                        Paso 1 — Pega tus datos
+                    </h3>
+
+                    <p style="color:#6b7280;font-size:13px;">
+                        En Google Sheets selecciona desde la fila de
+                        encabezados hasta el último alumno, copia
+                        (Ctrl/Cmd + C) y pega aquí abajo.
+                    </p>
+
+                    <textarea
+                        id="importTexto"
+                        style="min-height:160px;font-family:monospace;font-size:12px;"
+                        placeholder="Pega aquí, incluyendo la fila de encabezados..."
+                    ></textarea>
+
+                    <div class="acciones">
+
+                        <button
+                            type="button"
+                            id="btnAnalizarImportacion"
+                            class="btn-principal"
+                        >
+                            Analizar datos
+                        </button>
+
+                    </div>
+
+                    <div
+                        id="mensajeImportPaso1"
+                        class="mensaje"
+                    ></div>
+
+                </div>
+
+
+                <!-- PASO 2 -->
+
+                <div
+                    id="importPaso2"
+                    style="
+                        display:none;
+                        margin-top:25px;
+                        padding-top:25px;
+                        border-top:1px solid #e5e7eb;
+                    "
+                >
+
+                    <h3>
+                        Paso 2 — ¿Qué es cada columna?
+                    </h3>
+
+                    <p style="color:#6b7280;font-size:13px;">
+                        Se detectaron
+                        <strong id="importConteoFilas">0</strong>
+                        filas. Indica a qué dato corresponde cada
+                        columna de tu hoja (las que no apliquen,
+                        déjalas en "Ignorar").
+                    </p>
+
+                    <div
+                        id="mapeoColumnas"
+                        class="grid"
+                    ></div>
+
+                    <div
+                        class="campo"
+                        style="margin-top:15px;max-width:260px;"
+                    >
+
+                        <label for="importPeriodoPago">
+                            Periodo de los pagos importados
+                        </label>
+
+                        <input
+                            type="month"
+                            id="importPeriodoPago"
+                        >
+
+                    </div>
+
+                    <div class="acciones">
+
+                        <button
+                            type="button"
+                            id="btnContinuarMapeo"
+                            class="btn-principal"
+                        >
+                            Continuar
+                        </button>
+
+                    </div>
+
+                    <div
+                        id="mensajeImportPaso2"
+                        class="mensaje"
+                    ></div>
+
+                </div>
+
+
+                <!-- PASO 3 -->
+
+                <div
+                    id="importPaso3"
+                    style="
+                        display:none;
+                        margin-top:25px;
+                        padding-top:25px;
+                        border-top:1px solid #e5e7eb;
+                    "
+                >
+
+                    <h3>
+                        Paso 3 — Relaciona tarifas y pagos
+                    </h3>
+
+                    <p style="color:#6b7280;font-size:13px;">
+                        Estos son los valores distintos que encontramos.
+                        Dinos qué significa cada uno.
+                    </p>
+
+                    <div id="resolverGrupos"></div>
+
+                    <div id="resolverTarifas"></div>
+
+                    <div id="resolverEstadosPago"></div>
+
+                    <div class="acciones">
+
+                        <button
+                            type="button"
+                            id="btnContinuarResolucion"
+                            class="btn-principal"
+                        >
+                            Ver vista previa
+                        </button>
+
+                    </div>
+
+                    <div
+                        id="mensajeImportPaso3"
+                        class="mensaje"
+                    ></div>
+
+                </div>
+
+
+                <!-- PASO 4 -->
+
+                <div
+                    id="importPaso4"
+                    style="
+                        display:none;
+                        margin-top:25px;
+                        padding-top:25px;
+                        border-top:1px solid #e5e7eb;
+                    "
+                >
+
+                    <h3>
+                        Paso 4 — Vista previa
+                    </h3>
+
+                    <p style="color:#6b7280;font-size:13px;">
+                        Los alumnos marcados como
+                        <strong>posible duplicado</strong> vienen
+                        desmarcados por seguridad; revísalos antes
+                        de incluirlos.
+                    </p>
+
+                    <div class="tabla-contenedor">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>
+                                        <input
+                                            type="checkbox"
+                                            id="importSeleccionarTodos"
+                                            checked
+                                        >
+                                    </th>
+
+                                    <th>
+                                        Nombre
+                                    </th>
+
+                                    <th>
+                                        Grupo
+                                    </th>
+
+                                    <th>
+                                        Tarifa
+                                    </th>
+
+                                    <th>
+                                        Pago del periodo
+                                    </th>
+
+                                    <th>
+                                        Estado
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody id="listaPreviewImportacion"></tbody>
+
+                        </table>
+
+                    </div>
+
+                    <div class="acciones">
+
+                        <button
+                            type="button"
+                            id="btnImportarAhora"
+                            class="btn-verde"
+                        >
+                            💾 Importar
+                        </button>
+
+                        <button
+                            type="button"
+                            id="btnReiniciarImportacion"
+                            class="btn-secundario"
+                        >
+                            Empezar de nuevo
+                        </button>
+
+                    </div>
+
+                    <div
+                        id="mensajeImportPaso4"
+                        class="mensaje"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =================================================
+             USUARIOS
+        ================================================== -->
+
+        <section class="tarjeta">
+
+            <div class="cabecera-seccion">
+
+                <div>
+
+                    <h2>
+                        👤 Usuarios
+                    </h2>
+
+                    <p style="color:#6b7280;">
+                        Personas con acceso a esta app: administradores,
+                        recepción e instructores.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    id="btnToggleUsuario"
+                    class="btn-principal boton-desplegable"
+                >
+
+                    <span>
+                        ➕ Crear usuario
+                    </span>
+
+                    <span class="flecha">
+                        ▼
+                    </span>
+
+                </button>
+
+            </div>
+
+
+            <div
+                id="panelAltaUsuario"
+                class="panel-plegable"
+            >
+
+                <form id="formUsuario">
+
+                    <div class="grid">
+
+                        <div class="campo">
+
+                            <label for="usuarioNombre">
+                                Nombre *
+                            </label>
+
+                            <input
+                                type="text"
+                                id="usuarioNombre"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="usuarioApellidos">
+                                Apellidos
+                            </label>
+
+                            <input
+                                type="text"
+                                id="usuarioApellidos"
+                            >
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="usuarioCorreo">
+                                Correo *
+                            </label>
+
+                            <input
+                                type="email"
+                                id="usuarioCorreo"
+                                required
+                            >
+
+                            <small>
+                                No se puede cambiar después de creado.
+                            </small>
+
+                        </div>
+
+
+                        <div
+                            class="campo"
+                            id="campoUsuarioPassword"
+                        >
+
+                            <label for="usuarioPassword">
+                                Contraseña inicial *
+                            </label>
+
+                            <input
+                                type="text"
+                                id="usuarioPassword"
+                                minlength="6"
+                            >
+
+                            <small>
+                                Mínimo 6 caracteres. Ya podrá cambiarla
+                                después con "¿Olvidaste tu contraseña?".
+                            </small>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="usuarioRol">
+                                Rol *
+                            </label>
+
+                            <select id="usuarioRol" required>
+
+                                <option value="admin">
+                                    Administrador
+                                </option>
+
+                                <option value="recepcion">
+                                    Recepción
+                                </option>
+
+                                <option value="instructor">
+                                    Instructor
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="campo">
+
+                            <label for="usuarioActivoSelect">
+                                Estado
+                            </label>
+
+                            <select id="usuarioActivoSelect">
+
+                                <option value="true">
+                                    Activo
+                                </option>
+
+                                <option value="false">
+                                    Inactivo
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="acciones">
+
+                        <button
+                            type="submit"
+                            id="btnGuardarUsuario"
+                            class="btn-principal"
+                        >
+                            Crear usuario
+                        </button>
+
+                        <button
+                            type="button"
+                            id="btnCancelarUsuario"
+                            class="btn-secundario"
+                        >
+                            Cancelar
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        id="mensajeUsuario"
+                        class="mensaje"
+                    ></div>
+
+                </form>
+
+            </div>
+
+
+            <div class="tabla-contenedor">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Nombre
+                            </th>
+
+                            <th>
+                                Correo
+                            </th>
+
+                            <th>
+                                Rol
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Acción
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="listaUsuarios"></tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        </div>
+        <!-- fin #seccionAdministracion -->
+
+
+        <div id="expedienteBackdrop"></div>
+
+
+        <!-- =================================================
+             EXPEDIENTE
+        ================================================== -->
+
+        <section
+            id="expediente"
+            class="tarjeta"
+        >
+
+            <div class="expediente-header">
+
+                <div class="expediente-identidad">
+
+                    <div
+                        id="contenedorFotoExpediente"
+                    >
+
+                        <div
+                            class="foto-expediente foto-placeholder"
+                        >
+                            👤
+                        </div>
+
+                    </div>
+
+
+                    <div>
+
+                        <h2
+                            id="tituloExpediente"
+                            style="margin-bottom:6px;"
+                        >
+                            Alumno
+                        </h2>
+
+                        <div id="expActivo"></div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="acciones">
+
+                    <button
+                        id="btnEditar"
+                        class="btn-principal"
+                    >
+                        ✏️ Editar alumno
+                    </button>
+
+                    <button
+                        id="btnEliminarAlumno"
+                        class="btn-peligro"
+                        style="display:none;"
+                    >
+                        🗑️ Eliminar alumno
+                    </button>
+
+                    <button
+                        id="cerrarExpediente"
+                        class="btn-secundario"
+                    >
+                        Cerrar expediente
+                    </button>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- INFORMACIÓN ACADEMIA -->
+
+            <div class="bloque-expediente">
+
+                <h3>
+                    🥋 Información de academia
+                </h3>
+
+                <div class="datos-grid">
+
+                    <div class="dato">
+                        <strong>Grupo</strong>
+                        <span id="expGrupo"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Grado</strong>
+                        <span id="expGrado"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Fecha de registro</strong>
+                        <span id="expRegistro"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Fecha de ingreso</strong>
+                        <span id="expFechaIngreso"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Fecha de baja</strong>
+                        <span id="expFechaBaja"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>NFC</strong>
+                        <span id="expNfc"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Tarifa</strong>
+                        <span id="expTarifa"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Tipo de tarifa</strong>
+                        <span id="expTipoTarifa"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Beca</strong>
+                        <span id="expBeca"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Cuota base</strong>
+                        <span id="expCuotaBase"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Cuota mensual</strong>
+                        <span id="expCuotaMensual"></span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 PAGOS
+            ================================================== -->
+
+            <div class="bloque-expediente">
+
+                <h3>
+                    💰 Pagos
+                </h3>
+
+
+                <div class="resumen-pago">
+
+                    <div class="dato">
+
+                        <strong>
+                            Cuota mensual actual
+                        </strong>
+
+                        <span id="resumenCuotaMensual">
+                            $0.00
+                        </span>
+
+                    </div>
+
+
+                    <div class="dato">
+
+                        <strong>
+                            Último periodo registrado
+                        </strong>
+
+                        <span id="resumenUltimoPeriodo">
+                            Sin registros
+                        </span>
+
+                    </div>
+
+
+                    <div class="dato">
+
+                        <strong>
+                            Último estado
+                        </strong>
+
+                        <span id="resumenUltimoEstado">
+                            Sin registros
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- FORMULARIO PAGO -->
+
+                <div
+                    id="contenedorFormularioPago"
+                    style="
+                        background:#f9fafb;
+                        padding:18px;
+                        border-radius:10px;
+                        margin-bottom:25px;
+                    "
+                >
+
+                    <h4
+                        id="tituloFormularioPago"
+                        style="margin-top:0;"
+                    >
+                        Registrar mensualidad
+                    </h4>
+
+
+                    <form id="formPago">
+
+                        <div class="grid-3">
+
+                            <div class="campo">
+
+                                <label for="pagoPeriodo">
+                                    Periodo *
+                                </label>
+
+                                <input
+                                    type="month"
+                                    id="pagoPeriodo"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="pagoEstado">
+                                    Estado *
+                                </label>
+
+                                <select id="pagoEstado">
+
+                                    <option value="pagado">
+                                        Pagado
+                                    </option>
+
+                                    <option value="no_pagado">
+                                        No pagado
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="pagoMonto">
+                                    Monto
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="pagoMonto"
+                                    min="0"
+                                    step="0.01"
+                                >
+
+                                <small id="notaMontoPago">
+                                    Se propone la cuota mensual actual,
+                                    pero puedes modificarla.
+                                </small>
+
+                            </div>
+
+
+                            <div
+                                class="campo"
+                                id="campoFechaPago"
+                            >
+
+                                <label for="pagoFecha">
+                                    Fecha de pago
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="pagoFecha"
+                                >
+
+                            </div>
+
+
+                            <div
+                                class="campo"
+                                id="campoMetodoPago"
+                            >
+
+                                <label for="pagoMetodo">
+                                    Método de pago
+                                </label>
+
+                                <select id="pagoMetodo">
+
+                                    <option value="">
+                                        Seleccionar
+                                    </option>
+
+                                    <option value="Efectivo">
+                                        Efectivo
+                                    </option>
+
+                                    <option value="Transferencia">
+                                        Transferencia
+                                    </option>
+
+                                    <option value="Tarjeta">
+                                        Tarjeta
+                                    </option>
+
+                                    <option value="Otro">
+                                        Otro
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo campo-completo">
+
+                                <label for="pagoNota">
+                                    Nota
+                                </label>
+
+                                <textarea
+                                    id="pagoNota"
+                                    placeholder="Ej. No pagó porque estuvo de viaje..."
+                                ></textarea>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="acciones">
+
+                            <button
+                                type="submit"
+                                id="btnGuardarPago"
+                                class="btn-verde"
+                            >
+                                💾 Registrar
+                            </button>
+
+                            <button
+                                type="button"
+                                id="btnCancelarEdicionPago"
+                                class="btn-secundario"
+                                style="display:none;"
+                            >
+                                Cancelar edición
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            id="mensajePago"
+                            class="mensaje"
+                        ></div>
+
+                    </form>
+
+                </div>
+
+
+
+                <!-- HISTORIAL -->
+
+                <h4>
+                    Historial de pagos
+                </h4>
+
+                <div id="historialPagos"></div>
+
+            </div>
+
+
+
+            <!-- =================================================
+                 ANUALIDAD
+            ================================================== -->
+
+            <div class="bloque-expediente">
+
+                <h3>
+                    🗓️ Anualidad
+                </h3>
+
+                <div class="resumen-pago">
+
+                    <div class="dato">
+
+                        <strong>
+                            Año actual
+                        </strong>
+
+                        <span id="resumenAnioAnualidad">
+                            —
+                        </span>
+
+                    </div>
+
+
+                    <div class="dato">
+
+                        <strong>
+                            Estado
+                        </strong>
+
+                        <span id="resumenEstadoAnualidad">
+                            Sin registro
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="contenedorFormularioAnualidad"
+                    style="
+                        background:#f9fafb;
+                        padding:18px;
+                        border-radius:10px;
+                        margin-bottom:25px;
+                    "
+                >
+
+                    <h4
+                        id="tituloFormularioAnualidad"
+                        style="margin-top:0;"
+                    >
+                        Registrar anualidad
+                    </h4>
+
+
+                    <form id="formAnualidad">
+
+                        <div class="grid-3">
+
+                            <div class="campo">
+
+                                <label for="anualidadAnio">
+                                    Año *
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="anualidadAnio"
+                                    min="2000"
+                                    step="1"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="anualidadEstado">
+                                    Estado *
+                                </label>
+
+                                <select id="anualidadEstado">
+
+                                    <option value="pagado">
+                                        Pagado
+                                    </option>
+
+                                    <option value="no_pagado">
+                                        No pagado
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="anualidadMonto">
+                                    Monto
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="anualidadMonto"
+                                    min="0"
+                                    step="0.01"
+                                >
+
+                            </div>
+
+
+                            <div
+                                class="campo"
+                                id="campoFechaAnualidad"
+                            >
+
+                                <label for="anualidadFecha">
+                                    Fecha de pago
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="anualidadFecha"
+                                >
+
+                            </div>
+
+
+                            <div
+                                class="campo"
+                                id="campoMetodoAnualidad"
+                            >
+
+                                <label for="anualidadMetodo">
+                                    Método de pago
+                                </label>
+
+                                <select id="anualidadMetodo">
+
+                                    <option value="">
+                                        Seleccionar
+                                    </option>
+
+                                    <option value="Efectivo">
+                                        Efectivo
+                                    </option>
+
+                                    <option value="Transferencia">
+                                        Transferencia
+                                    </option>
+
+                                    <option value="Tarjeta">
+                                        Tarjeta
+                                    </option>
+
+                                    <option value="Otro">
+                                        Otro
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo campo-completo">
+
+                                <label for="anualidadNota">
+                                    Nota
+                                </label>
+
+                                <textarea
+                                    id="anualidadNota"
+                                    placeholder="Ej. No pagó porque..."
+                                ></textarea>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="acciones">
+
+                            <button
+                                type="submit"
+                                id="btnGuardarAnualidad"
+                                class="btn-verde"
+                            >
+                                💾 Registrar
+                            </button>
+
+                            <button
+                                type="button"
+                                id="btnCancelarEdicionAnualidad"
+                                class="btn-secundario"
+                                style="display:none;"
+                            >
+                                Cancelar edición
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            id="mensajeAnualidad"
+                            class="mensaje"
+                        ></div>
+
+                    </form>
+
+                </div>
+
+
+                <h4>
+                    Historial de anualidades
+                </h4>
+
+                <div id="historialAnualidades"></div>
+
+            </div>
+
+
+
+<!-- ASISTENCIA -->
+
+<div class="bloque-expediente">
+
+    <h3>
+        📋 Asistencia
+    </h3>
+
+
+    <div
+        class="campo"
+        style="max-width:220px;margin-bottom:15px;"
+    >
+
+        <label for="expedienteAsistenciaMes">
+            Mes a revisar
+        </label>
+
+        <input
+            type="month"
+            id="expedienteAsistenciaMes"
+        >
+
+    </div>
+
+
+    <!-- RESUMEN CON BARRA -->
+
+    <div id="resumenAsistenciaAlumno">
+
+        <div class="cargando-asistencia">
+            Calculando...
+        </div>
+
+    </div>
+
+
+    <div class="resumen-asistencia">
+
+        <div class="dato-asistencia">
+
+            <span class="etiqueta">
+                Este año
+            </span>
+
+            <strong id="expAsistenciasAnio">
+                0
+            </strong>
+
+        </div>
+
+
+        <div class="dato-asistencia">
+
+            <span class="etiqueta">
+                Última asistencia
+            </span>
+
+            <strong id="expUltimaAsistencia">
+                —
+            </strong>
+
+        </div>
+
+    </div>
+
+
+    <div
+        class="acciones"
+        style="margin-top:15px;"
+    >
+
+        <button
+            type="button"
+            id="btnToggleAsistenciaManual"
+            class="btn-secundario boton-desplegable"
+        >
+
+            <span>
+                ➕ Registrar asistencia manual
+            </span>
+
+            <span class="flecha">
+                ▼
+            </span>
+
+        </button>
+
+
+        <button
+            type="button"
+            id="btnToggleHistorialAsistencia"
+            class="btn-secundario boton-desplegable"
+        >
+
+            <span>
+                📖 Ver historial completo
+            </span>
+
+            <span class="flecha">
+                ▼
+            </span>
+
+        </button>
+
+    </div>
+
+
+    <!-- REGISTRAR ASISTENCIA MANUAL (colapsado) -->
+
+    <div
+        id="panelAsistenciaManual"
+        class="panel-plegable"
+    >
+
+        <div class="registro-asistencia-manual">
+
+            <h4>
+                Registrar asistencia
+            </h4>
+
+            <div class="formulario-asistencia-manual">
+
+                <div>
+
+                    <label>
+                        Fecha
+                    </label>
+
+                    <input
+                        type="date"
+                        id="fechaAsistenciaManual"
+                    >
+
+                </div>
+
+
+                <div>
+
+                    <label>
+                        Hora
+                    </label>
+
+                    <input
+                        type="time"
+                        id="horaAsistenciaManual"
+                    >
+
+                </div>
+
+
+                <button
+                    type="button"
+                    id="btnRegistrarAsistenciaManual"
+                >
+                    Registrar asistencia
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- HISTORIAL COMPLETO (colapsado) -->
+
+    <div
+        id="panelHistorialAsistencia"
+        class="panel-plegable"
+    >
+
+        <div class="historial-asistencia">
+
+            <h4>
+                Historial de asistencias
+            </h4>
+
+
+            <div id="listaAsistenciasAlumno">
+
+                <div class="cargando-asistencia">
+                    Cargando asistencias...
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+            <!-- DATOS PERSONALES -->
+
+            <div class="bloque-expediente">
+
+                <h3>
+                    👤 Datos personales
+                </h3>
+
+                <div class="datos-grid">
+
+                    <div class="dato">
+                        <strong>Nombre completo</strong>
+                        <span id="expNombre"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Fecha de nacimiento</strong>
+                        <span id="expNacimiento"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Correo</strong>
+                        <span id="expCorreo"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Teléfono</strong>
+                        <span id="expTelefono"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Estado civil</strong>
+                        <span id="expEstadoCivil"></span>
+                    </div>
+
+                    <div class="dato">
+                        <strong>Dirección</strong>
+                        <span id="expDireccion"></span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- EDICIÓN ALUMNO -->
+
+            <div
+                id="panelEdicion"
+                style="
+                    display:none;
+                    margin-top:30px;
+                "
+            >
+
+                <div
+                    style="
+                        border-top:1px solid #e5e7eb;
+                        padding-top:25px;
+                    "
+                >
+
+                    <h3>
+                        ✏️ Editar alumno
+                    </h3>
+
+
+                    <form id="formEdicion">
+
+                        <div class="grid">
+
+                            <div class="campo">
+
+                                <label for="editNombre">
+                                    Nombre *
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="editNombre"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editApellidoPaterno">
+                                    Apellido paterno *
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="editApellidoPaterno"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editApellidoMaterno">
+                                    Apellido materno
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="editApellidoMaterno"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editFechaNacimiento">
+                                    Fecha de nacimiento
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="editFechaNacimiento"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editCorreo">
+                                    Correo
+                                </label>
+
+                                <input
+                                    type="email"
+                                    id="editCorreo"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editTelefono">
+                                    Teléfono
+                                </label>
+
+                                <input
+                                    type="tel"
+                                    id="editTelefono"
+                                >
+
+                            </div>
+
+
+                            <div class="campo campo-completo">
+
+                                <label for="editDireccion">
+                                    Dirección
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="editDireccion"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editEstadoCivil">
+                                    Estado civil
+                                </label>
+
+                                <select id="editEstadoCivil">
+
+                                    <option value="">
+                                        Seleccionar
+                                    </option>
+
+                                    <option value="Soltero(a)">
+                                        Soltero(a)
+                                    </option>
+
+                                    <option value="Casado(a)">
+                                        Casado(a)
+                                    </option>
+
+                                    <option value="Unión libre">
+                                        Unión libre
+                                    </option>
+
+                                    <option value="Divorciado(a)">
+                                        Divorciado(a)
+                                    </option>
+
+                                    <option value="Viudo(a)">
+                                        Viudo(a)
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editFechaIngreso">
+                                    Fecha de ingreso
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="editFechaIngreso"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editFechaBaja">
+                                    Fecha de baja
+                                </label>
+
+                                <input
+                                    type="date"
+                                    id="editFechaBaja"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editActivo">
+                                    Estado
+                                </label>
+
+                                <select id="editActivo">
+
+                                    <option value="true">
+                                        Activo
+                                    </option>
+
+                                    <option value="false">
+                                        Inactivo
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editGrupo">
+                                    Grupo
+                                </label>
+
+                                <select id="editGrupo">
+
+                                    <option value="">
+                                        Seleccionar grupo
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editGrado">
+                                    Grado
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="editGrado"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editNfcUid">
+                                    NFC UID
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="editNfcUid"
+                                >
+
+                            </div>
+
+
+                            <div class="campo">
+
+                                <label for="editFoto">
+                                    Cambiar fotografía
+                                </label>
+
+                                <input
+                                    type="file"
+                                    id="editFoto"
+                                    accept="image/*"
+                                >
+
+                                <img
+                                    id="previewFotoEdicion"
+                                    class="preview-foto"
+                                    alt="Vista previa"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div
+                            style="
+                                margin-top:30px;
+                                padding-top:20px;
+                                border-top:1px solid #e5e7eb;
+                            "
+                        >
+
+                            <h4>
+                                Datos económicos
+                            </h4>
+
+                            <div class="grid-3">
+
+                                <div class="campo">
+
+                                    <label for="editTarifaId">
+                                        Tarifa
+                                    </label>
+
+                                    <select id="editTarifaId">
+
+                                        <option value="">
+                                            Seleccionar tarifa
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+
+                                <div class="campo">
+
+                                    <label for="editTipoTarifa">
+                                        Tipo de tarifa
+                                    </label>
+
+                                    <select id="editTipoTarifa">
+
+                                        <option value="normal">
+                                            Normal
+                                        </option>
+
+                                        <option value="beca">
+                                            Beca
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+
+                                <div
+                                    class="campo"
+                                    id="campoEditTipoDescuentoBeca"
+                                    style="display:none;"
+                                >
+
+                                    <label for="editTipoDescuentoBeca">
+                                        Tipo de descuento
+                                    </label>
+
+                                    <select id="editTipoDescuentoBeca">
+
+                                        <option value="porcentaje">
+                                            Porcentaje (%)
+                                        </option>
+
+                                        <option value="monto">
+                                            Monto fijo ($)
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+
+                                <div
+                                    class="campo"
+                                    id="campoEditPorcentajeBeca"
+                                    style="display:none;"
+                                >
+
+                                    <label for="editPorcentajeBeca">
+                                        Porcentaje de descuento
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        id="editPorcentajeBeca"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                    >
+
+                                </div>
+
+
+                                <div
+                                    class="campo"
+                                    id="campoEditMontoDescuentoBeca"
+                                    style="display:none;"
+                                >
+
+                                    <label for="editMontoDescuentoBeca">
+                                        Monto a descontar
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        id="editMontoDescuentoBeca"
+                                        min="0"
+                                        step="0.01"
+                                    >
+
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                style="
+                                    margin-top:15px;
+                                    background:#f9fafb;
+                                    padding:15px;
+                                    border-radius:8px;
+                                "
+                            >
+
+                                <strong>
+                                    Cuota mensual:
+                                </strong>
+
+                                <span
+                                    id="editCuotaMensualVista"
+                                    style="
+                                        font-size:20px;
+                                        margin-left:10px;
+                                    "
+                                >
+                                    $0.00
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="acciones">
+
+                            <button
+                                type="submit"
+                                id="guardarEdicion"
+                                class="btn-principal"
+                            >
+                                Guardar cambios
+                            </button>
+
+                            <button
+                                type="button"
+                                id="cancelarEdicion"
+                                class="btn-secundario"
+                            >
+                                Cancelar
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            id="mensajeEdicion"
+                            class="mensaje"
+                        ></div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    </div>
+    <!-- fin .contenido-principal -->
+
+</div>
+<!-- fin .app-shell -->
+
+</div>
+<!-- fin #appPrincipal -->
+
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script type="module" src="./js/firebase-bridge.js"></script>
+
+</body>
+</html>

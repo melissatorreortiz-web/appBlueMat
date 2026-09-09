@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Blue Mat Academy | Pasar lista</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #111827;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .tarjeta {
+            max-width: 480px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 6px;
+        }
+
+        p.subtitulo {
+            color: #9ca3af;
+            margin-top: 0;
+            margin-bottom: 40px;
+        }
+
+        .circulo {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            background: #1f2937;
+            border: 6px solid #374151;
+            transition: all .2s ease;
+            overflow: hidden;
+        }
+
+        .circulo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .circulo.exito {
+            border-color: #16a34a;
+            background: #052e16;
+        }
+
+        .circulo.error {
+            border-color: #dc2626;
+            background: #2c0a0a;
+        }
+
+        .mensaje-estado {
+            font-size: 22px;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        .mensaje-estado.exito {
+            color: #4ade80;
+        }
+
+        .mensaje-estado.error {
+            color: #f87171;
+        }
+
+        .mensaje-detalle {
+            color: #9ca3af;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        input#entradaNfc {
+            position: absolute;
+            top: -1000px;
+            left: -1000px;
+            opacity: 0;
+        }
+
+        .pie {
+            margin-top: 50px;
+            color: #4b5563;
+            font-size: 13px;
+        }
+
+        .pie a {
+            color: #6b7280;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="tarjeta">
+
+        <h1>🥋 Blue Mat Academy</h1>
+        <p class="subtitulo">Pasa tu tarjeta para registrar tu asistencia</p>
+
+        <div id="circuloEstado" class="circulo">
+            🪪
+        </div>
+
+        <div id="mensajeEstado" class="mensaje-estado">
+            Esperando tarjeta...
+        </div>
+
+        <div id="mensajeDetalle" class="mensaje-detalle"></div>
+
+        <input type="text" id="entradaNfc" autocomplete="off">
+
+        <p class="pie">
+            ¿No se registró tu asistencia? Avisa en recepción.
+            <br>
+            <a id="linkAdmin" href="index.html">Ir al panel de administración</a>
+        </p>
+
+    </div>
+
+    <script type="module">
+
+        import { db, auth } from "./firebase-config.js";
+
+        import {
+            doc,
+            getDoc,
+            addDoc,
+            collection,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+        import {
+            signInAnonymously,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+        const entradaNfc =
+            document.getElementById("entradaNfc");
+
+        const circuloEstado =
+            document.getElementById("circuloEstado");
+
+        const mensajeEstado =
+            document.getElementById("mensajeEstado");
+
+        const mensajeDetalle =
+            document.getElementById("mensajeDetalle");
+
+
+        let listoParaLeer =
+            false;
+
+        let procesando =
+            false;
+
+        let temporizadorReset =
+            null;
+
+
+        function enfocarEntrada() {
+
+            entradaNfc.focus();
+
+        }
+
+
+        function mostrarEstado(
+            tipo,
+            texto,
+            detalle,
+            fotoBase64
+        ) {
+
+            circuloEstado.className =
+                `circulo ${tipo}`;
+
+            if (
+                fotoBase64
+            ) {
+
+                circuloEstado.innerHTML =
+                    `<img src="${fotoBase64}" alt="Foto">`;
+
+            } else {
+
+                circuloEstado.innerHTML =
+
+                    tipo === "exito"
+                        ? "✅"
+                        : tipo === "error"
+                            ? "❌"
+                            : "🪪";
+
+            }
+
+            mensajeEstado.className =
+                `mensaje-estado ${tipo}`;
+
+            mensajeEstado.textContent =
+                texto;
+
+            mensajeDetalle.textContent =
+                detalle || "";
+
+        }
+
+
+        function volverAEsperar() {
+
+            mostrarEstado(
+                "",
+                "Esperando tarjeta...",
+                ""
+            );
+
+            entradaNfc.value =
+                "";
+
+            procesando =
+                false;
+
+            enfocarEntrada();
+
+        }
+
+
+        function programarReset() {
+
+            if (
+                temporizadorReset
+            ) {
+
+                clearTimeout(
+                    temporizadorReset
+                );
+
+            }
+
+            temporizadorReset =
+                setTimeout(
+                    volverAEsperar,
+                    4000
+                );
+
+        }
+
+
+        async function procesarTarjeta(
+            uid
+        ) {
+
+            if (
+                procesando ||
+                !listoParaLeer
+            ) {
+                return;
+            }
+
+            const uidLimpio =
+                uid.trim();
+
+            if (
+                !uidLimpio
+            ) {
+                return;
+            }
+
+            procesando =
+                true;
+
+            mostrarEstado(
+                "",
+                "Verificando...",
+                ""
+            );
+
+            try {
+
+                const referencia =
+                    doc(
+                        db,
+                        "directorio_nfc",
+                        uidLimpio
+                    );
+
+                const snap =
+                    await getDoc(
+                        referencia
+                    );
+
+                if (
+                    !snap.exists() ||
+                    snap.data().activo !== true
+                ) {
+
+                    mostrarEstado(
+                        "error",
+                        "Tarjeta no reconocida",
+                        "Pasa a recepción para revisar tu registro."
+                    );
+
+                    programarReset();
+
+                    return;
+
+                }
+
+                const alumno =
+                    snap.data();
+
+                await addDoc(
+                    collection(
+                        db,
+                        "asistencias"
+                    ),
+                    {
+                        alumnoId:
+                            alumno.alumnoId,
+
+                        nombre:
+                            alumno.nombre || "",
+
+                        fecha:
+                            serverTimestamp(),
+
+                        origen:
+                            "kiosco"
+                    }
+                );
+
+                mostrarEstado(
+                    "exito",
+                    `¡Bienvenido, ${alumno.nombre || ""}!`,
+                    "Asistencia registrada.",
+                    alumno.foto
+                );
+
+                programarReset();
+
+            } catch (error) {
+
+                console.error(
+                    "Error registrando asistencia:",
+                    error
+                );
+
+                mostrarEstado(
+                    "error",
+                    "No se pudo registrar",
+                    "Intenta de nuevo o avisa en recepción."
+                );
+
+                programarReset();
+
+            }
+
+        }
+
+
+        entradaNfc.addEventListener(
+            "keydown",
+            function(e) {
+
+                if (
+                    e.key === "Enter"
+                ) {
+
+                    e.preventDefault();
+
+                    procesarTarjeta(
+                        entradaNfc.value
+                    );
+
+                }
+
+            }
+        );
+
+
+        /*
+         * Algunos lectores NFC no mandan "Enter" al
+         * final, solo escriben el UID muy rápido.
+         * Como respaldo, si dejan de escribir por un
+         * momento y ya hay texto, lo procesamos igual.
+         */
+
+        let ultimaEscritura =
+            0;
+
+        entradaNfc.addEventListener(
+            "input",
+            function() {
+
+                ultimaEscritura =
+                    Date.now();
+
+                setTimeout(
+                    function() {
+
+                        if (
+                            Date.now() - ultimaEscritura >= 300 &&
+                            entradaNfc.value.trim()
+                        ) {
+
+                            procesarTarjeta(
+                                entradaNfc.value
+                            );
+
+                        }
+
+                    },
+                    350
+                );
+
+            }
+        );
+
+
+        window.addEventListener(
+            "click",
+            enfocarEntrada
+        );
+
+        window.addEventListener(
+            "blur",
+            enfocarEntrada
+        );
+
+
+        onAuthStateChanged(
+            auth,
+            function(user) {
+
+                if (
+                    user
+                ) {
+
+                    listoParaLeer =
+                        true;
+
+                    volverAEsperar();
+
+                }
+
+            }
+        );
+
+
+        signInAnonymously(
+            auth
+        ).catch(
+            function(error) {
+
+                console.error(
+                    "Error iniciando sesión anónima:",
+                    error
+                );
+
+                mostrarEstado(
+                    "error",
+                    "No se pudo conectar",
+                    "Avisa en recepción."
+                );
+
+            }
+        );
+
+    </script>
+
+</body>
+</html>
