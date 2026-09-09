@@ -1,0 +1,919 @@
+
+        :root {
+            --azul: #333366;
+            --azul-oscuro: #262650;
+            --azul-suave: #eceaf5;
+            --rojo: #cc3333;
+            --rojo-suave: #fbe9e9;
+            --verde: #16a34a;
+            --verde-suave: #dcfce7;
+            --tinta: #16181f;
+            --gris-texto: #5b5f6b;
+            --tiza: #f5f5f7;
+            --superficie: #ffffff;
+            --borde: #e3e2ea;
+            --fuente-titulos: "Oswald", Arial, Helvetica, sans-serif;
+            --fuente-texto: "Inter", Arial, Helvetica, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            font-family: var(--fuente-texto);
+            background: var(--tiza);
+            color: var(--tinta);
+        }
+
+        h1, h2, h3, h4,
+        .marca-nombre,
+        .nav-lateral button {
+            font-family: var(--fuente-titulos);
+            letter-spacing: .01em;
+        }
+
+        button {
+            font-family: var(--fuente-texto);
+        }
+
+        /* =====================================================
+           LOGIN
+        ===================================================== */
+
+        #loginSection {
+            max-width: 420px;
+            margin: 80px auto;
+            padding: 20px;
+        }
+
+        #loginSection .tarjeta {
+            margin-bottom: 0;
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .login-logo h1 {
+            margin-bottom: 5px;
+            color: var(--azul);
+        }
+
+        .login-logo p {
+            color: var(--gris-texto);
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .link {
+            color: var(--azul);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* =====================================================
+           ESTRUCTURA DE APP (barra lateral + contenido)
+        ===================================================== */
+
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0;
+            background: var(--tinta);
+            color: #d7d8de;
+            display: flex;
+            flex-direction: column;
+            padding: 22px 16px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+        }
+
+        .marca {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 8px 22px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid rgba(255,255,255,.1);
+        }
+
+        .marca-icono {
+            font-size: 26px;
+        }
+
+        .marca-nombre {
+            font-size: 17px;
+            color: white;
+            line-height: 1.15;
+        }
+
+        .marca-nombre small {
+            display: block;
+            font-family: var(--fuente-texto);
+            font-size: 11px;
+            color: #9698a6;
+            font-weight: normal;
+            letter-spacing: normal;
+        }
+
+        .nav-lateral {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .nav-lateral button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            color: #c4c5d2;
+            border: none;
+            border-radius: 8px;
+            padding: 11px 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s ease, color .15s ease;
+        }
+
+        .nav-lateral button:hover {
+            background: rgba(255,255,255,.06);
+            color: white;
+        }
+
+        .nav-lateral button.activo {
+            background: var(--azul);
+            color: white;
+        }
+
+        .nav-lateral .nav-subitem {
+            padding-left: 30px;
+            font-size: 13px;
+        }
+
+        .nav-separador {
+            margin: 14px 8px 6px;
+            font-size: 11px;
+            text-transform: none;
+            color: #74768a;
+            border-top: 1px solid rgba(255,255,255,.1);
+            padding-top: 14px;
+        }
+
+        .sidebar-pie {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,.1);
+        }
+
+        .sidebar-pie .nombre-usuario {
+            font-size: 13px;
+            color: white;
+            margin-bottom: 2px;
+        }
+
+        .sidebar-pie .rol-usuario {
+            font-size: 11px;
+            color: #9698a6;
+            margin-bottom: 10px;
+        }
+
+        .contenido-principal {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contenido-interior {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 28px;
+        }
+
+        .vista {
+            display: none;
+        }
+
+        .vista.activa {
+            display: block;
+        }
+
+        .vista-titulo {
+            margin: 0 0 22px;
+            font-size: 26px;
+        }
+
+        /* =====================================================
+           TARJETAS Y FORMULARIOS
+        ===================================================== */
+
+        .tarjeta {
+            background: var(--superficie);
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 24px;
+        }
+
+        .tarjeta h2 {
+            margin-top: 0;
+        }
+
+        .tarjeta h3 {
+            margin-top: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .campo {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .campo label {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--tinta);
+        }
+
+        .campo input,
+        .campo select,
+        .campo textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d0da;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: var(--fuente-texto);
+            background: white;
+            color: var(--tinta);
+        }
+
+        .campo input:focus,
+        .campo select:focus,
+        .campo textarea:focus,
+        button:focus-visible {
+            outline: 2px solid var(--azul);
+            outline-offset: 1px;
+        }
+
+        .campo textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .campo small {
+            color: var(--gris-texto);
+            font-size: 12px;
+        }
+
+        .campo-completo {
+            grid-column: 1 / -1;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .btn-principal {
+            background: var(--azul);
+            color: white;
+        }
+
+        .btn-principal:hover {
+            background: var(--azul-oscuro);
+        }
+
+        .btn-secundario {
+            background: #e9e9ee;
+            color: var(--tinta);
+        }
+
+        .btn-secundario:hover {
+            background: #dcdce3;
+        }
+
+        .btn-peligro {
+            background: var(--rojo);
+            color: white;
+        }
+
+        .btn-peligro:hover {
+            background: #a82727;
+        }
+
+        .btn-verde {
+            background: var(--verde);
+            color: white;
+        }
+
+        .btn-negro {
+            background: var(--tinta);
+            color: white;
+        }
+
+        .acciones {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .mensaje {
+            margin-top: 14px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .mensaje.ok {
+            display: block;
+            background: var(--verde-suave);
+            color: #166534;
+        }
+
+        .mensaje.error {
+            display: block;
+            background: var(--rojo-suave);
+            color: #8a2222;
+        }
+
+        .tabla-contenedor {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            padding: 11px 10px;
+            border-bottom: 1px solid var(--borde);
+            text-align: left;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        th {
+            background: #faf9fc;
+            font-weight: 600;
+            color: var(--gris-texto);
+            font-size: 12px;
+            text-transform: none;
+        }
+
+        .estado-activo {
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        .estado-inactivo {
+            color: var(--rojo);
+            font-weight: 600;
+        }
+
+        .boton-fila {
+            padding: 7px 10px;
+            font-size: 12px;
+        }
+
+        .cabecera-seccion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .panel-plegable {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--borde);
+        }
+
+        .panel-plegable.abierto {
+            display: block;
+        }
+
+        .boton-desplegable {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .flecha {
+            transition: transform .2s ease;
+        }
+
+        .boton-desplegable.abierto .flecha {
+            transform: rotate(180deg);
+        }
+
+        .tarifa-form {
+            margin-bottom: 25px;
+        }
+
+        .tarifa-cuota {
+            font-weight: 600;
+        }
+
+        /* =====================================================
+           EXPEDIENTE (panel deslizante)
+        ===================================================== */
+
+        #expedienteBackdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(17,17,26,.45);
+            z-index: 40;
+        }
+
+        #expedienteBackdrop.visible {
+            display: block;
+        }
+
+        #expediente {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: min(760px, 100vw);
+            background: var(--superficie);
+            z-index: 50;
+            overflow-y: auto;
+            padding: 28px;
+            box-shadow: -8px 0 24px rgba(0,0,0,.15);
+            border-radius: 0;
+            margin: 0;
+            border: none;
+        }
+
+        .expediente-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+
+        .expediente-identidad {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .foto-expediente {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--azul-suave);
+            background: #f3f4f6;
+        }
+
+        .foto-placeholder {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 35px;
+        }
+
+        .datos-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .dato {
+            background: var(--tiza);
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .dato strong {
+            display: block;
+            font-size: 12px;
+            color: var(--gris-texto);
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .dato span {
+            font-size: 14px;
+        }
+
+        .bloque-expediente {
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid var(--borde);
+        }
+
+        .tarjeta-futura {
+            background: var(--tiza);
+            border: 1px dashed #cfced9;
+            border-radius: 10px;
+            padding: 25px;
+            text-align: center;
+            color: var(--gris-texto);
+        }
+
+        .tarjeta-futura .icono {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .resumen-pago {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .resumen-pago .dato {
+            background: var(--tiza);
+        }
+
+        .estado-pago {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .estado-pago.pagado {
+            background: var(--verde-suave);
+            color: #166534;
+        }
+
+        .estado-pago.no-pagado {
+            background: var(--rojo-suave);
+            color: #8a2222;
+        }
+
+        .historial-vacio {
+            padding: 20px;
+            text-align: center;
+            color: var(--gris-texto);
+            background: var(--tiza);
+            border-radius: 8px;
+        }
+
+        .preview-foto {
+            width: 120px;
+            height: 120px;
+            border-radius: 10px;
+            object-fit: cover;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .modo-edicion-pago {
+            border: 2px solid var(--azul) !important;
+        }
+
+        /* ===== COBRANZA MENSUAL ===== */
+
+        .filtros-cobranza {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .resumen-cobranza {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .resumen-cobranza .dato {
+            background: var(--tiza);
+            text-align: center;
+        }
+
+        .resumen-cobranza .dato span {
+            display: block;
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 4px;
+            font-family: var(--fuente-titulos);
+        }
+
+        .resumen-cobranza .dato.activos span {
+            color: var(--tinta);
+        }
+
+        .resumen-cobranza .dato.pagaron span {
+            color: #15803d;
+        }
+
+        .resumen-cobranza .dato.no-pagaron span {
+            color: var(--rojo);
+        }
+
+        .resumen-cobranza .dato.pendientes span {
+            color: #92400e;
+        }
+
+        .badge-cobranza {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-cobranza.pagado {
+            background: var(--verde-suave);
+            color: #166534;
+        }
+
+        .badge-cobranza.no_pagado {
+            background: var(--rojo-suave);
+            color: #8a2222;
+        }
+
+        .badge-cobranza.sin_registro {
+            background: #efeef4;
+            color: #5b5f6b;
+        }
+
+        .fila-no-pagado {
+            background: #fdf2f2;
+        }
+
+        .fila-sin-registro {
+            background: #fafafa;
+        }
+
+        /* ===== ASISTENCIA DEL ALUMNO (expediente) ===== */
+
+        .barra-asistencia {
+            background: #e9e9ee;
+            border-radius: 8px;
+            height: 12px;
+            overflow: hidden;
+        }
+
+        .barra-asistencia-relleno {
+            height: 100%;
+            background: var(--azul);
+            border-radius: 8px;
+            transition: width .3s ease;
+        }
+
+        .resumen-asistencia {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .dato-asistencia {
+            background: var(--tiza);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .dato-asistencia .etiqueta {
+            display: block;
+            font-size: 12px;
+            color: var(--gris-texto);
+            margin-bottom: 4px;
+        }
+
+        .dato-asistencia strong {
+            font-size: 16px;
+        }
+
+        .registro-asistencia-manual h4,
+        .historial-asistencia h4 {
+            margin-top: 0;
+        }
+
+        .formulario-asistencia-manual {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .formulario-asistencia-manual > div {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .formulario-asistencia-manual label {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .formulario-asistencia-manual input {
+            padding: 10px 12px;
+            border: 1px solid #d1d0da;
+            border-radius: 8px;
+            font-family: var(--fuente-texto);
+        }
+
+        .formulario-asistencia-manual button {
+            background: var(--azul);
+            color: white;
+        }
+
+        .fila-asistencia-alumno {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 4px;
+            border-bottom: 1px solid var(--borde);
+            font-size: 14px;
+        }
+
+        .fila-asistencia-alumno button {
+            background: transparent;
+            padding: 4px 6px;
+            font-size: 14px;
+        }
+
+        .cargando-asistencia,
+        .sin-asistencias,
+        .error-asistencia {
+            padding: 16px;
+            text-align: center;
+            color: var(--gris-texto);
+            background: var(--tiza);
+            border-radius: 8px;
+        }
+
+        .contenedor-historial-pago {
+            padding: 10px 14px;
+            background: var(--tiza);
+            border-radius: 8px;
+        }
+
+        .linea-historial-pago {
+            padding: 6px 0;
+            border-bottom: 1px solid var(--borde);
+            font-size: 13px;
+            color: var(--tinta);
+        }
+
+        .linea-historial-pago:last-child {
+            border-bottom: none;
+        }
+
+        /* ===== ASISTENCIA POR GRUPO ===== */
+
+        .filtro-asistencia-grupo.activo {
+            background: var(--azul);
+            color: white;
+        }
+
+        .fila-asistencia {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--borde);
+        }
+
+        .fila-asistencia label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: normal;
+        }
+
+        .fila-asistencia input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 900px) {
+
+            .app-shell {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                flex-direction: row;
+                align-items: center;
+                overflow-x: auto;
+                padding: 12px;
+            }
+
+            .marca {
+                border-bottom: none;
+                border-right: 1px solid rgba(255,255,255,.1);
+                padding: 0 16px 0 4px;
+                margin-bottom: 0;
+                margin-right: 10px;
+            }
+
+            .nav-lateral {
+                flex-direction: row;
+            }
+
+            .nav-lateral .nav-subitem {
+                padding-left: 12px;
+            }
+
+            .nav-separador {
+                display: none;
+            }
+
+            .sidebar-pie {
+                margin-top: 0;
+                margin-left: auto;
+                padding-top: 0;
+                border-top: none;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                white-space: nowrap;
+            }
+
+            .sidebar-pie .nombre-usuario,
+            .sidebar-pie .rol-usuario {
+                display: none;
+            }
+
+            .contenido-interior {
+                padding: 20px 14px;
+            }
+
+            #expediente {
+                width: 100vw;
+            }
+        }
+
+        @media (max-width: 800px) {
+
+            .grid,
+            .grid-3,
+            .datos-grid,
+            .resumen-pago,
+            .filtros-cobranza,
+            .resumen-cobranza {
+                grid-template-columns: 1fr;
+            }
+
+            .tarjeta {
+                padding: 16px;
+            }
+        }
