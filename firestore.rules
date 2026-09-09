@@ -1,0 +1,166 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================
+    // FUNCIONES DE APOYO
+    // =========================
+
+    function usuarioActivo() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.activo == true;
+    }
+
+    function rolUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol;
+    }
+
+    function esAdmin() {
+      return usuarioActivo() && rolUsuario() == "admin";
+    }
+
+    function esAdminORecepcion() {
+      return usuarioActivo() && rolUsuario() in ["admin", "recepcion"];
+    }
+
+    // =========================
+    // USUARIOS
+    // =========================
+    match /usuarios/{usuarioId} {
+      // Cada quien puede leer su propio perfil, y un admin puede leer todos
+      // (necesario para el panel de Usuarios).
+      allow read: if request.auth != null
+                   && (request.auth.uid == usuarioId || esAdmin());
+      // Solo un administrador activo puede crear, modificar o eliminar usuarios
+      allow write: if esAdmin();
+    }
+
+    // =========================
+    // ALUMNOS
+    // =========================
+    match /alumnos/{alumnoId} {
+      // Cualquier usuario activo puede ver alumnos (instructor incluido;
+      // el filtrado de datos personales se hace en la app, no aquí)
+      allow read: if usuarioActivo();
+      // Solo admin y recepción pueden crear/editar alumnos
+      allow write: if esAdminORecepcion();
+    }
+
+    // =========================
+    // TARIFAS
+    // =========================
+    match /tarifas/{tarifaId} {
+      allow read: if usuarioActivo();
+      // Solo admin puede tocar tarifas
+      allow write: if esAdmin();
+    }
+
+    // =========================
+    // GRUPOS
+    // =========================
+    match /grupos/{grupoId} {
+      allow read: if usuarioActivo();
+      // Solo admin puede tocar grupos
+      allow write: if esAdmin();
+    }
+
+    // =========================
+    // PAGOS
+    // =========================
+    match /pagos/{pagoId} {
+      // Instructor NO debe ver pagos — solo admin y recepción
+      allow read: if esAdminORecepcion();
+      // Admin y recepción pueden registrar/editar pagos (mensualidades y anualidades)
+      allow create, update, delete: if esAdminORecepcion();
+    }
+
+    // =========================
+    // DIRECTORIO NFC (kiosco de asistencia)
+    // =========================
+    match /directorio_nfc/{nfcUid} {
+      // El kiosco solo necesita consultar UNA tarjeta a la vez (get),
+      // así que eso sí lo dejamos abierto a cualquier sesión, incluida
+      // la anónima. Pero LISTAR toda la colección (bajarse el
+      // directorio completo de un jalón) solo lo puede hacer el staff.
+      allow get: if request.auth != null;
+      allow list: if usuarioActivo();
+      // Solo admin/recepción lo mantienen (la app lo sincroniza sola
+      // cuando das de alta o editas un alumno con NFC UID).
+      allow write: if esAdminORecepcion();
+    }
+
+   // =========================
+// ASISTENCIAS
+// =========================
+
+match /asistencias/{asistenciaId} {
+
+  // Usuarios activos pueden consultar asistencias
+  allow read: if usuarioActivo();
+
+
+  // =========================
+  // REGISTRO DE ASISTENCIA
+  // =========================
+
+  // Kiosco NFC:
+  // Solo puede crear asistencias con la hora real del servidor.
+  allow create: if request.auth != null
+                 && request.resource.data.alumnoId is string
+                 && exists(
+                      /databases/$(database)/documents/alumnos/$(request.resource.data.alumnoId)
+                    )
+                 && request.resource.data.fecha == request.time
+                 && request.resource.data.origen == "kiosco"
+                 && request.resource.data.keys().hasOnly([
+                      "alumnoId",
+                      "nombre",
+                      "fecha",
+                      "origen"
+                    ]);
+
+
+  // Registro manual desde el panel:
+  // Admin y recepción pueden registrar una fecha/hora elegida.
+  allow create: if esAdminORecepcion()
+                 && request.resource.data.alumnoId is string
+                 && exists(
+                      /databases/$(database)/documents/alumnos/$(request.resource.data.alumnoId)
+                    )
+                 && request.resource.data.fecha is timestamp
+                 && request.resource.data.origen == "manual"
+                 && request.resource.data.keys().hasOnly([
+                      "alumnoId",
+                      "nombre",
+                      "fecha",
+                      "origen"
+                    ]);
+
+
+  // Admin y recepción pueden corregir una asistencia.
+  allow update: if esAdminORecepcion()
+                && request.resource.data.alumnoId is string
+                && request.resource.data.fecha is timestamp
+                && request.resource.data.origen == "manual"
+                && request.resource.data.keys().hasOnly([
+                     "alumnoId",
+                     "nombre",
+                     "fecha",
+                     "origen"
+                   ]);
+
+
+  // Solo admin puede eliminar asistencias.
+  allow delete: if esAdmin();
+
+}
+
+    // =========================
+    // TODO LO DEMÁS
+    // =========================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
